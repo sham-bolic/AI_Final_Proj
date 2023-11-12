@@ -9,10 +9,6 @@ import time
 
 @register_agent("student_agent")
 class StudentAgent(Agent):
-    """
-    A dummy class for your implementation. Feel free to use this class to
-    add any helper functionalities needed for your agent.
-    """
 
     def __init__(self):
         super(StudentAgent, self).__init__()
@@ -23,6 +19,25 @@ class StudentAgent(Agent):
             "d": 2,
             "l": 3,
         }
+
+    def allowed_dirs(my_pos, adv_pos, chess_board):
+        moves = ((-1, 0), (0, 1), (1, 0), (0, -1))                      # Possible changes in x and y
+        x, y = my_pos                                                   
+        possible_moves = [ d                                            # storing d if there is not a wall nor adv in the way
+            for d in range (0,4)
+            if not chess_board[x, y, d] and
+            not adv_pos == (x + moves[d][0], y + moves[d][1])
+        ]
+        return possible_moves
+
+    def allowed_barriers(my_pos, chess_board):
+        x, y = my_pos
+        legal_walls = [i for i in range (0,4) if not chess_board[x, y, i]]
+        return legal_walls                                              # returning the possible places that wall can be placed for given my_pos
+
+    def panic_room(walls):
+        assert len(walls) >= 1                                          # insuring that were surrounded by 4 walls
+        
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         """
@@ -40,6 +55,7 @@ class StudentAgent(Agent):
         Please check the sample implementation in agents/random_agent.py or agents/human_agent.py for more details.
         """
 
+        
         # Some simple code to help you with timing. Consider checking 
         # time_taken during your search and breaking with the best answer
         # so far when it nears 2 seconds.
