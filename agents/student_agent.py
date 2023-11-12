@@ -5,10 +5,28 @@ import sys
 import numpy as np
 from copy import deepcopy
 import time
+import math 
+from collections import defaultdict
 
 
 @register_agent("student_agent")
 class StudentAgent(Agent):
+
+    class MonteCarloTreeSearchNode() :
+        def __init__ (self, state, parent, c = math.sqrt(2)) :
+            self.state = state
+            elf.parent = parent
+            self.children = []
+            self.N = defaultdict(int)           # number of times visited
+            self.Q = defaultdict(int)           # value of node
+            self.A = defaultdict(int)           # number of actions taken
+
+        def tree_policy(self):
+            return (self.Q) + ( self.c * math.sqrt(math.log(self.N) / self.A))  
+        
+        #def is_terminal_node(self): 
+
+        
 
     def __init__(self):
         super(StudentAgent, self).__init__()
@@ -37,7 +55,7 @@ class StudentAgent(Agent):
 
     def panic_room(walls):
         assert len(walls) >= 1                                          # insuring that were surrounded by 4 walls
-        
+          
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         """
@@ -66,3 +84,7 @@ class StudentAgent(Agent):
 
         # dummy return
         return my_pos, self.dir_map["u"]
+
+
+
+     
