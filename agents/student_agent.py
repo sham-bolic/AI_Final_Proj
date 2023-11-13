@@ -7,14 +7,15 @@ from copy import deepcopy
 import time
 import math 
 from collections import defaultdict
+import random
 
 
 @register_agent("student_agent")
 class StudentAgent(Agent):
 
     class MonteCarloTreeSearchNode() :
-        def __init__ (self, chess_board, my_pos, adv_pos, parent, c = math.sqrt(2)) :
-            self.state = chess_board
+        def __init__ (self, chess_board, my_pos, adv_pos, max_steps, c = math.sqrt(2), parent=None) :
+            self.chess_board = chess_board
             self.p0_pos = my_pos
             self.p1_pos = adv_pos
             self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
@@ -23,8 +24,9 @@ class StudentAgent(Agent):
             self.N = 0                  # number of times visited
             self.Q = 0                  # value of node
             self.A = 0                  # number of actions taken
-            self.available_actions = None
-            self.available_actions = self.available_actions()
+            self.max_steps = max_steps
+            self.all_moves = None
+            self.all_moves = self.legal_moves()
 
         def tree_policy(self):
             return (self.Q) + ( self.c * math.sqrt(math.log(self.N) / self.A))  
@@ -35,12 +37,46 @@ class StudentAgent(Agent):
         
         def selection (self):
             curr_node = self
-            while not self.is_terminal_node():
+            while not  curr_node.is_terminal_node():
+                if not curr_node.is_fully_expanded():
+                    return curr_node.expand()
                 
+        def expand(self):
+            move = random.choice(self.all_moves, 1)
+            self.all_moves.remove(move)
+            
+            child = MonteCarloTreeSearchNode(
+            )
+                
+        def move(self):
+            chess_board = deepcopy(self.chess_board)
+            x, y = self.p0_pos
+            # Set the barrier to True
+            chess_board[x, y, dir] = True
+            # Set the opposite barrier to True
+            move = self.moves[dir]
+            chess_board[x + move[0], y + move[1], self.opposites[dir]] = True
+            
+
+
+
+        def legal_moves(self):
+            o_pos = deepcopy(self.p0_pos)
+            steps = [[] for k in range(self.max_steps+1)]
+            steps[0][0] = o_pos
+            for i in range(self.max_steps):
+                for pos in steps[i]:
+                    moves = StudentAgent.allowed_dirs(pos, self.p1_pos, self.chess_board)
+                    for move in moves:
+                        new_move = np.add(pos, move)
+                        if new_move not in steps:
+                            steps[i+1].append(new_move)
+            return np.array(steps).flatten().tolist()
+                         
 
         def is_fully_expanded(self):
-            return self.A == 0
-
+            return len(self.all_moves) == 0
+        
         def check_endgame(self):        # returns (isendgame, p1 score, p2 score)
             # Union-Find
             father = dict()
@@ -61,7 +97,7 @@ class StudentAgent(Agent):
                     for dir, move in enumerate(
                         self.moves[1:3]
                     ):  # Only check down and right
-                        if self.state[r, c, dir + 1]:
+                        if self.chess_board[r, c, dir + 1]:
                             continue
                         pos_a = find((r, c))
                         pos_b = find((r + move[0], c + move[1]))
@@ -87,7 +123,7 @@ class StudentAgent(Agent):
             return True, player_win                 # p1 = 0, p2 = 1, tie = -1
         
         def board_size(self):
-            x, _, _ = np.shape(self.state)
+            x, _, _ = np.shape(self.chess_board)
             return x
 
     def __init__(self):
