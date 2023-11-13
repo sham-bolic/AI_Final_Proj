@@ -13,20 +13,82 @@ from collections import defaultdict
 class StudentAgent(Agent):
 
     class MonteCarloTreeSearchNode() :
-        def __init__ (self, state, parent, c = math.sqrt(2)) :
-            self.state = state
-            elf.parent = parent
+        def __init__ (self, chess_board, my_pos, adv_pos, parent, c = math.sqrt(2)) :
+            self.state = chess_board
+            self.p0_pos = my_pos
+            self.p1_pos = adv_pos
+            self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
+            self.parent = parent
             self.children = []
-            self.N = defaultdict(int)           # number of times visited
-            self.Q = defaultdict(int)           # value of node
-            self.A = defaultdict(int)           # number of actions taken
+            self.N = 0                  # number of times visited
+            self.Q = 0                  # value of node
+            self.A = 0                  # number of actions taken
+            self.available_actions = None
+            self.available_actions = self.available_actions()
 
         def tree_policy(self):
             return (self.Q) + ( self.c * math.sqrt(math.log(self.N) / self.A))  
         
-        #def is_terminal_node(self): 
-
+        def is_terminal_node(self): 
+            x, _ = self.check_endgame()
+            return x
         
+        def selection (self):
+            curr_node = self
+            while not self.is_terminal_node():
+                
+
+        def is_fully_expanded(self):
+            return self.A == 0
+
+        def check_endgame(self):        # returns (isendgame, p1 score, p2 score)
+            # Union-Find
+            father = dict()
+            for r in range(self.board_size()):
+                for c in range(self.board_size()):
+                    father[(r, c)] = (r, c)
+
+            def find(pos):
+                if father[pos] != pos:
+                    father[pos] = find(father[pos])
+                return father[pos]
+
+            def union(pos1, pos2):
+                father[pos1] = pos2
+
+            for r in range(self.board_size()):
+                for c in range(self.board_size()):
+                    for dir, move in enumerate(
+                        self.moves[1:3]
+                    ):  # Only check down and right
+                        if self.state[r, c, dir + 1]:
+                            continue
+                        pos_a = find((r, c))
+                        pos_b = find((r + move[0], c + move[1]))
+                        if pos_a != pos_b:
+                            union(pos_a, pos_b)
+
+            for r in range(self.board_size()):
+                for c in range(self.board_size()):
+                    find((r, c))
+            p0_r = find(tuple(self.p0_pos))
+            p1_r = find(tuple(self.p1_pos))
+            p0_score = list(father.values()).count(p0_r)
+            p1_score = list(father.values()).count(p1_r)
+            if p0_r == p1_r:
+                return False, -5                    # -5 if false
+            player_win = None
+            if p0_score > p1_score:
+                player_win = 0
+            elif p0_score < p1_score:
+                player_win = 1
+            else:
+                player_win = -1  # Tie
+            return True, player_win                 # p1 = 0, p2 = 1, tie = -1
+        
+        def board_size(self):
+            x, _, _ = np.shape(self.state)
+            return x
 
     def __init__(self):
         super(StudentAgent, self).__init__()
