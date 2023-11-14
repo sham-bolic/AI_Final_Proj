@@ -26,22 +26,22 @@ class StudentAgent(Agent):
             self.A = 0                  # number of actions taken
             self.max_steps = max_steps
             self.all_moves = None
-            self.all_moves = self.legal_moves()
+            self.all_moves = self.legal_moves() # List of legal moves
 
-        def tree_policy(self):
+        def tree_policy(self):          # UCT unused as of 12/11/2023
             return (self.Q) + ( self.c * math.sqrt(math.log(self.N) / self.A))  
         
-        def is_terminal_node(self): 
+        def is_terminal_node(self):     # Matches endgame and extracts boolean
             x, _ = self.check_endgame()
-            return x
+            return x                    
         
-        def selection (self):
+        def selection (self):                           # Selection policy
             curr_node = self
-            while not  curr_node.is_terminal_node():
-                if not curr_node.is_fully_expanded():
-                    return curr_node.expand()
+            while not curr_node.is_terminal_node():     # While is not the end of game
+                if not curr_node.is_fully_expanded():   # While there are still moves to be made
+                    return curr_node.expand()           # Expand the node
                 
-        def expand(self):
+        def expand(self):                               # Make next move and add as child
             move = random.choice(self.all_moves, 1)
             self.all_moves.remove(move)
             
@@ -60,21 +60,21 @@ class StudentAgent(Agent):
 
 
 
-        def legal_moves(self):
+        def legal_moves(self):                                  # find all possible moves
             o_pos = deepcopy(self.p0_pos)
-            steps = [[] for k in range(self.max_steps+1)]
-            steps[0][0] = o_pos
+            steps = [[] for k in range(self.max_steps+1)]       # create 2D array to store possible moves for each step
+            steps[0][0] = o_pos                                 # step 0 = original position
             for i in range(self.max_steps):
                 for pos in steps[i]:
-                    moves = StudentAgent.allowed_dirs(pos, self.p1_pos, self.chess_board)
-                    for move in moves:
-                        new_move = np.add(pos, move)
-                        if new_move not in steps:
+                    moves = StudentAgent.allowed_dirs(pos, self.p1_pos, self.chess_board)  
+                    for move in moves:                          # iterates through legal moves given current position
+                        new_move = np.add(pos, move)            # getting new pos (x + a, y + b)
+                        if new_move not in steps:               # checking if move is contained in array
                             steps[i+1].append(new_move)
-            return np.array(steps).flatten().tolist()
+            return np.array(steps).flatten().tolist()           # flattening the array so it is only 1D
                          
 
-        def is_fully_expanded(self):
+        def is_fully_expanded(self):                            # checks if there are any possible moves left
             return len(self.all_moves) == 0
         
         def check_endgame(self):        # returns (isendgame, p1 score, p2 score)
@@ -122,7 +122,7 @@ class StudentAgent(Agent):
                 player_win = -1  # Tie
             return True, player_win                 # p1 = 0, p2 = 1, tie = -1
         
-        def board_size(self):
+        def board_size(self):                       # Board is NxNx4 capturing N
             x, _, _ = np.shape(self.chess_board)
             return x
 
