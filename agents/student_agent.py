@@ -6,7 +6,6 @@ import numpy as np
 from copy import deepcopy
 import time
 import math 
-from collections import defaultdict
 import random
 
 
@@ -14,7 +13,7 @@ import random
 class StudentAgent(Agent):
 
     class MonteCarloTreeSearchNode() :
-        def __init__ (self, chess_board, my_pos, adv_pos, max_steps, c = math.sqrt(2), parent=None) :
+        def __init__ (self, chess_board, my_pos, adv_pos, max_steps, parent=None, c = math.sqrt(2)) :
             self.chess_board = chess_board
             self.p0_pos = my_pos
             self.p1_pos = adv_pos
@@ -44,15 +43,19 @@ class StudentAgent(Agent):
                     return curr_node.expand()           # Expand the node
                 
         def expand(self):                               # Make next move and add as child
-            move = random.choice(self.all_moves, 1)
-            self.all_moves.remove(move)
-            
-            child = MonteCarloTreeSearchNode(
+            next_move = self.all_moves.pop(np.random.randint(0, len(self.all_moves)))
+            board = self.move(next_move)
+
+            child = StudentAgent.MonteCarloTreeSearchNode(
+                board, next_move, self.p1_pos, self.max_steps, parent = self
             )
+            self.children.append(child)
+            return child
                 
         def move(self, pos):                            # takes position and simulates a move 
             chess_board = deepcopy(self.chess_board)
             x, y = pos
+            dir = self.random_barrier(pos)
             # Set the barrier to True
             chess_board[x, y, dir] = True
             # Set the opposite barrier to True
@@ -62,7 +65,7 @@ class StudentAgent(Agent):
             
         def random_barrier(self, pos):
             barriers = StudentAgent.allowed_barriers(pos, self.chess_board)
-            return barriers[np.random.randint(0, len(barriers) + 1)]
+            return barriers[np.random.randint(0, len(barriers))]
 
 
         def legal_moves(self):                                  # find all possible moves
