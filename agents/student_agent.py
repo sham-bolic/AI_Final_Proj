@@ -15,6 +15,7 @@ class StudentAgent(Agent):
     class MonteCarloTreeSearchNode() :
         def __init__ (self, chess_board, my_pos, adv_pos, max_steps, parent=None, c = math.sqrt(2)) :
             self.chess_board = chess_board
+            self.c = c
             self.p0_pos = my_pos
             self.p1_pos = adv_pos
             self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
@@ -23,15 +24,18 @@ class StudentAgent(Agent):
             self.parent = parent
             self.children = []
             self.N = 0                  # number of times visited
-            self.Q = 0                  # value of node
+            self.Q = 0                  # score of node (win: +1, loss: -1, tie: +0.5)
             self.A = 0                  # number of actions taken
             self.max_steps = max_steps
             self.all_moves = None
             self.all_moves = self.legal_moves() # List of legal moves
 
-        def tree_policy(self):          # UCT unused as of 12/11/2023
-            return (self.Q) + ( self.c * math.sqrt(math.log(self.N) / self.A))  
-        
+        def tree_policy(self):          
+            UCT = [((child.Q/child.N) +                              # Exploitation
+                    (child.c * np.sqrt(np.log(child.N/child.A))))    # Exploration
+                      for child in self.children]                    # For each child node
+            return self.children[np.argmax(UCT)]                     # Returning best child based on UCT
+
         def is_terminal_node(self):     # Matches endgame and extracts boolean
             x, _ = self.check_endgame()
             return x                    
@@ -41,6 +45,9 @@ class StudentAgent(Agent):
             while not curr_node.is_terminal_node():     # While is not the end of game
                 if not curr_node.is_fully_expanded():   # While there are still moves to be made
                     return curr_node.expand()           # Expand the node
+                else:
+                    curr_node = curr_node.tree_policy() # Choose best child and return
+            return curr_node
                 
         def expand(self):                               # Make next move and add as child
             next_move = self.all_moves.pop(np.random.randint(0, len(self.all_moves)))
