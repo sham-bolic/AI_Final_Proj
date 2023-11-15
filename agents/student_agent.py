@@ -19,6 +19,7 @@ class StudentAgent(Agent):
             self.p0_pos = my_pos
             self.p1_pos = adv_pos
             self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
+            self.opposites = {0: 2, 1: 3, 2: 0, 3: 1}
             self.parent = parent
             self.children = []
             self.N = 0                  # number of times visited
@@ -48,16 +49,19 @@ class StudentAgent(Agent):
             child = MonteCarloTreeSearchNode(
             )
                 
-        def move(self):
+        def move(self, pos):                            # takes position and simulates a move 
             chess_board = deepcopy(self.chess_board)
-            x, y = self.p0_pos
+            x, y = pos
             # Set the barrier to True
             chess_board[x, y, dir] = True
             # Set the opposite barrier to True
             move = self.moves[dir]
             chess_board[x + move[0], y + move[1], self.opposites[dir]] = True
+            return chess_board
             
-
+        def random_barrier(self, pos):
+            barriers = StudentAgent.allowed_barriers(pos, self.chess_board)
+            return barriers[np.random.randint(0, len(barriers) + 1)]
 
 
         def legal_moves(self):                                  # find all possible moves
