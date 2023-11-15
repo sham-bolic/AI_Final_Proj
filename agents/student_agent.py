@@ -20,6 +20,7 @@ class StudentAgent(Agent):
             self.p1_pos = adv_pos
             self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
             self.opposites = {0: 2, 1: 3, 2: 0, 3: 1}
+            self.map = {0:(-1, 0), 1:(0, 1), 2:(1, 0), 3:(0, -1)}
             self.parent = parent
             self.children = []
             self.N = 0                  # number of times visited
@@ -67,15 +68,15 @@ class StudentAgent(Agent):
         def legal_moves(self):                                  # find all possible moves
             o_pos = deepcopy(self.p0_pos)
             steps = [[] for k in range(self.max_steps+1)]       # create 2D array to store possible moves for each step
-            steps[0][0] = o_pos                                 # step 0 = original position
+            steps[0].append(o_pos)                                 # step 0 = original position
             for i in range(self.max_steps):
                 for pos in steps[i]:
                     moves = StudentAgent.allowed_dirs(pos, self.p1_pos, self.chess_board)  
                     for move in moves:                          # iterates through legal moves given current position
-                        new_move = np.add(pos, move)            # getting new pos (x + a, y + b)
+                        new_move = np.add(pos, self.map[move])            # getting new pos (x + a, y + b)
                         if new_move not in steps:               # checking if move is contained in array
                             steps[i+1].append(new_move)
-            return np.array(steps).flatten().tolist()           # flattening the array so it is only 1D
+            return list(set(sum(steps, [])))                    # flattening the array so it is only 1D
                          
 
         def is_fully_expanded(self):                            # checks if there are any possible moves left
