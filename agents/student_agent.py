@@ -34,11 +34,7 @@ class StudentAgent(Agent):
             UCT = [((child.Q/child.N) +                              # Exploitation
                     (child.c * np.sqrt(np.log(child.N/child.A))))    # Exploration
                       for child in self.children]                    # For each child node
-            return self.children[np.argmax(UCT)]                     # Returning best child based on UCT
-
-        def is_terminal_node(self):     # Matches endgame and extracts boolean
-            x, _ = self.check_endgame()
-            return x                    
+            return self.children[np.argmax(UCT)]                     # Returning best child based on UCT            
         
         def selection (self):                           # Selection policy
             curr_node = self
@@ -92,7 +88,11 @@ class StudentAgent(Agent):
         def is_fully_expanded(self):                            # checks if there are any possible moves left
             return len(self.all_moves) == 0
         
-        def check_endgame(self):        # returns (isendgame, p1 score, p2 score)
+        def is_terminal_node(self, board, p1, p2):     # Matches endgame and extracts boolean
+            x, _ = self.check_endgame(board, p1, p2)
+            return x        
+        
+        def check_endgame(self, board, p1, p2):        # returns (isendgame, p1 score, p2 score)
             # Union-Find
             father = dict()
             for r in range(self.board_size()):
@@ -112,7 +112,7 @@ class StudentAgent(Agent):
                     for dir, move in enumerate(
                         self.moves[1:3]
                     ):  # Only check down and right
-                        if self.chess_board[r, c, dir + 1]:
+                        if board[r, c, dir + 1]:
                             continue
                         pos_a = find((r, c))
                         pos_b = find((r + move[0], c + move[1]))
@@ -122,8 +122,8 @@ class StudentAgent(Agent):
             for r in range(self.board_size()):
                 for c in range(self.board_size()):
                     find((r, c))
-            p0_r = find(tuple(self.p0_pos))
-            p1_r = find(tuple(self.p1_pos))
+            p0_r = find(tuple(p1))
+            p1_r = find(tuple(p2))
             p0_score = list(father.values()).count(p0_r)
             p1_score = list(father.values()).count(p1_r)
             if p0_r == p1_r:
@@ -140,6 +140,50 @@ class StudentAgent(Agent):
         def board_size(self):                       # Board is NxNx4 capturing N
             x, _, _ = np.shape(self.chess_board)
             return x
+        
+        def simulate (self):
+            board = deepcopy(self.chess_board)
+            p1 = self.p0_pos
+            p2 = self.p1_pos
+            while (self.is_terminal_node(board, p1, p2)):
+                p1, p2, dir = self.random_moves(p2, p1, board)
+                board = self.move(board)
+
+
+
+        def random_moves(self, p1, p2, board):                     # Literally random_agent
+            steps = np.random.randint(0, self.max_step + 1)
+
+            # Pick steps random but allowable moves
+            for _ in range(steps):
+                r, c = p1
+
+                # Build a list of the moves we can make
+                allowed_dirs = [ d                                
+                    for d in range(0,4)                                      # 4 moves possible
+                    if not board[r,c,d] and                       # chess_board True means wall
+                    not p2 == (r+self.moves[d][0],c+self.moves[d][1])]  # cannot move through Adversary
+
+                if len(allowed_dirs)==0:
+                    # If no possible move, we must be enclosed by our Adversary
+                    break
+
+                random_dir = allowed_dirs[np.random.randint(0, len(allowed_dirs))]
+
+                # This is how to update a row,col by the entries in moves 
+                # to be consistent with game logic
+                m_r, m_c = self.moves[random_dir]
+                p1 = (r + m_r, c + m_c)
+
+            # Final portion, pick where to put our new barrier, at random
+            r, c = p1
+            # Possibilities, any direction such that chess_board is False
+            allowed_barriers=[i for i in range(0,4) if not board[r,c,i]]
+            # Sanity check, no way to be fully enclosed in a square, else game already ended
+            assert len(allowed_barriers)>=1 
+            dir = allowed_barriers[np.random.randint(0, len(allowed_barriers))]
+
+            return p1, p2, dir
 
     def __init__(self):
         super(StudentAgent, self).__init__()
