@@ -32,7 +32,7 @@ class StudentAgent(Agent):
             self.dir = None
             self.dir = self.random_barrier(self.p0_pos)
 
-        def tree_policy(self):          
+        def tree_policy(self):
             UCT = [((child.Q/child.N) +                              # Exploitation
                     (child.c * np.sqrt(np.log(child.N/child.A))))    # Exploration
                       for child in self.children]                    # For each child node
@@ -144,7 +144,7 @@ class StudentAgent(Agent):
             return x
         
         def best_move(self):
-            n_simulation = 100
+            n_simulation = 1
 
             for i in range(n_simulation):
                 current = self.selection()
@@ -160,7 +160,7 @@ class StudentAgent(Agent):
             self.N += 1
             self.Q += result
             if (self.parent):
-                self.backpropagate()
+                self.parent.backpropagate(result)
 
         def simulate(self):
             board = deepcopy(self.chess_board) 
@@ -178,7 +178,7 @@ class StudentAgent(Agent):
             return result                                          # return simulation result
 
         def random_moves(self, p1, p2, board):                     # Literally random_agent
-            steps = np.random.randint(0, self.max_step + 1)
+            steps = np.random.randint(0, self.max_steps + 1)
 
             # Pick steps random but allowable moves
             for _ in range(steps):
