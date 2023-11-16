@@ -19,6 +19,7 @@ class RandomAgent(Agent):
         # Moves (Up, Right, Down, Left)
         moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
         steps = np.random.randint(0, max_step + 1)
+        breakpoint()
 
         # Pick steps random but allowable moves
         for _ in range(steps):
