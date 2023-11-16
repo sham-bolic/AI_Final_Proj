@@ -174,9 +174,8 @@ class StudentAgent(Agent):
             if (original_player): 
               _, result = self.check_endgame(board, p1, p2)
             else:
-              _, result = self.check_endgame(board, p2, p1)                  
-            sum += result                                        # Update value of node depending on result
-            return sum
+              _, result = self.check_endgame(board, p2, p1)                                                      
+            return result                                          # return simulation result
 
         def random_moves(self, p1, p2, board):                     # Literally random_agent
             steps = np.random.randint(0, self.max_step + 1)
