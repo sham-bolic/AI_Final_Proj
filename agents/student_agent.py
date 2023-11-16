@@ -29,6 +29,8 @@ class StudentAgent(Agent):
             self.max_steps = max_steps
             self.all_moves = None
             self.all_moves = self.legal_moves() # List of legal moves
+            self.dir = None
+            self.dir = self.random_barrier(self.p0_pos)
 
         def tree_policy(self):          
             UCT = [((child.Q/child.N) +                              # Exploitation
@@ -58,12 +60,12 @@ class StudentAgent(Agent):
         def move(self, board, pos):                            # takes position and simulates a move 
             chess_board = deepcopy(board)
             x, y = pos
-            dir = self.random_barrier(pos)
+            
             # Set the barrier to True
-            chess_board[x, y, dir] = True
+            chess_board[x, y, self.dir] = True
             # Set the opposite barrier to True
-            move = self.moves[dir]
-            chess_board[x + move[0], y + move[1], self.opposites[dir]] = True
+            move = self.moves[self.dir]
+            chess_board[x + move[0], y + move[1], self.opposites[self.dir]] = True
             return chess_board
             
         def random_barrier(self, pos):
@@ -141,7 +143,26 @@ class StudentAgent(Agent):
             x, _, _ = np.shape(self.chess_board)
             return x
         
-        def simulate (self):
+        def best_move(self):
+            n_simulation = 100
+
+            for i in range(n_simulation):
+                current = self.selection()
+                result = current.simulate()
+                current.backpropagate(result)
+            best_node = self.tree_policy()
+            best_pos = best_node.p0_pos
+            best_dir = best_node.dir
+            return best_pos, best_dir
+
+
+        def backpropagate(self, result):
+            self.N += 1
+            self.Q += result
+            if (self.parent):
+                self.backpropagate()
+
+        def simulate(self):
             board = deepcopy(self.chess_board) 
             p1 = self.p0_pos
             p2 = self.p1_pos
@@ -154,7 +175,8 @@ class StudentAgent(Agent):
               _, result = self.check_endgame(board, p1, p2)
             else:
               _, result = self.check_endgame(board, p2, p1)                  
-            self.Q += result                                        # Update value of node depending on result
+            sum += result                                        # Update value of node depending on result
+            return sum
 
         def random_moves(self, p1, p2, board):                     # Literally random_agent
             steps = np.random.randint(0, self.max_step + 1)
@@ -240,12 +262,15 @@ class StudentAgent(Agent):
         # time_taken during your search and breaking with the best answer
         # so far when it nears 2 seconds.
         start_time = time.time()
+        root = self.MonteCarloTreeSearchNode(chess_board, my_pos, adv_pos, max_step)
+        pos, dir = root.best_move()
+
         time_taken = time.time() - start_time
         
         print("My AI's turn took ", time_taken, "seconds.")
 
         # dummy return
-        return my_pos, self.dir_map["u"]
+        return pos, dir
 
 
 
