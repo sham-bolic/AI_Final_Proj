@@ -40,7 +40,7 @@ class StudentAgent(Agent):
         
         def selection (self):                           # Selection policy
             curr_node = self
-            while not curr_node.is_terminal_node():     # While is not the end of game
+            while not curr_node.is_terminal_node(curr_node.chess_board, curr_node.p0_pos, curr_node.p1_pos):     # While is not the end of game
                 if not curr_node.is_fully_expanded():   # While there are still moves to be made
                     return curr_node.expand()           # Expand the node
                 else:
@@ -81,7 +81,7 @@ class StudentAgent(Agent):
                 for pos in steps[i]:
                     moves = StudentAgent.allowed_dirs(pos, self.p1_pos, self.chess_board)  
                     for move in moves:                          # iterates through legal moves given current position
-                        new_move = np.add(pos, self.map[move])            # getting new pos (x + a, y + b)
+                        new_move = tuple(np.add(pos, self.map[move]))           # getting new pos (x + a, y + b)
                         if new_move not in steps:               # checking if move is contained in array
                             steps[i+1].append(new_move)
             return list(set(sum(steps, [])))                    # flattening the array so it is only 1D
