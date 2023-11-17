@@ -57,8 +57,6 @@ class StudentAgent(Agent):
             num_bar = len(StudentAgent.allowed_barriers(next_move, self.chess_board))            # Heuristic to avoid trapping self in
             if (num_bar == 1) :
                 child.Q += -1000
-            elif (num_bar == 2) :
-                child.Q += -10
 
             self.children.append(child)
             return child
