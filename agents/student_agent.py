@@ -53,6 +53,13 @@ class StudentAgent(Agent):
             child = StudentAgent.MonteCarloTreeSearchNode(
                 board, next_move, self.p1_pos, self.max_steps, dir, parent = self
             )
+            
+            num_bar = StudentAgent.allowed_barriers(next_move, self.chess_board)
+            if (num_bar == 1) :
+                child.Q += -1000
+            elif (num_bar == 2) :
+                child.Q += -10
+
             self.children.append(child)
             return child
                 
