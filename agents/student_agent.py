@@ -13,7 +13,7 @@ import random
 class StudentAgent(Agent):
 
     class MonteCarloTreeSearchNode() :
-        def __init__ (self, chess_board, my_pos, adv_pos, max_steps, parent=None, c = math.sqrt(2)) :
+        def __init__ (self, chess_board, my_pos, adv_pos, max_steps, dir = None,parent=None, c = math.sqrt(2)) :
             self.chess_board = chess_board
             self.c = c
             self.p0_pos = my_pos
@@ -25,34 +25,33 @@ class StudentAgent(Agent):
             self.children = []
             self.N = 0                  # number of times visited
             self.Q = 0                  # score of node (win: +1, loss: -1, tie: +0.5)
-            self.A = 0                  # number of actions taken
             self.max_steps = max_steps
             self.all_moves = None
             self.all_moves = self.legal_moves() # List of legal moves
-            self.dir = None
-            self.dir = self.random_barrier(self.p0_pos)
+            self.dir = dir
 
-        def tree_policy(self):
+        def tree_policy(self):          
             UCT = [((child.Q/child.N) +                              # Exploitation
-                    (child.c * np.sqrt(np.log(child.N/child.A))))    # Exploration
+                    (child.c * np.sqrt(np.log(self.N/child.N))))    # Exploration
                       for child in self.children]                    # For each child node
             return self.children[np.argmax(UCT)]                     # Returning best child based on UCT            
         
         def selection (self):                           # Selection policy
             curr_node = self
+            
             while not curr_node.is_terminal_node(curr_node.chess_board, curr_node.p0_pos, curr_node.p1_pos):     # While is not the end of game
-                if not curr_node.is_fully_expanded():   # While there are still moves to be made
-                    return curr_node.expand()           # Expand the node
+                if (not curr_node.is_fully_expanded()):   # While there are still moves to be made
+                    return curr_node.expand()         # Expand the node
                 else:
                     curr_node = curr_node.tree_policy() # Choose best child and return
             return curr_node
                 
         def expand(self):                               # Make next move and add as child
             next_move = self.all_moves.pop(np.random.randint(0, len(self.all_moves)))
-            board = self.move(self.chess_board, next_move)
+            board, dir = self.move(self.chess_board, next_move)
 
             child = StudentAgent.MonteCarloTreeSearchNode(
-                board, next_move, self.p1_pos, self.max_steps, parent = self
+                board, next_move, self.p1_pos, self.max_steps, dir, parent = self
             )
             self.children.append(child)
             return child
@@ -60,13 +59,14 @@ class StudentAgent(Agent):
         def move(self, board, pos):                            # takes position and simulates a move 
             chess_board = deepcopy(board)
             x, y = pos
-            
+            dir = self.random_barrier(pos)
+
             # Set the barrier to True
-            chess_board[x, y, self.dir] = True
+            chess_board[x, y, dir] = True
             # Set the opposite barrier to True
-            move = self.moves[self.dir]
-            chess_board[x + move[0], y + move[1], self.opposites[self.dir]] = True
-            return chess_board
+            move = self.moves[dir]
+            chess_board[x + move[0], y + move[1], self.opposites[dir]] = True
+            return chess_board, dir
             
         def random_barrier(self, pos):
             barriers = StudentAgent.allowed_barriers(pos, self.chess_board)
@@ -144,7 +144,7 @@ class StudentAgent(Agent):
             return x
         
         def best_move(self):
-            n_simulation = 1
+            n_simulation = 100
 
             for i in range(n_simulation):
                 current = self.selection()
@@ -169,13 +169,14 @@ class StudentAgent(Agent):
             original_player = True 
             while (not self.is_terminal_node(board, p1, p2)):       # While game is not over
                 p1, p2 = self.random_moves(p2, p1, board)           # Take turns playing
-                board = self.move(board, p1)                        # Update board
+                board,_ = self.move(board, p1)                        # Update board
                 original_player = not original_player 
             if (original_player): 
               _, result = self.check_endgame(board, p1, p2)
             else:
-              _, result = self.check_endgame(board, p2, p1)                                                      
-            return result                                          # return simulation result
+              _, result = self.check_endgame(board, p2, p1)                  
+            return result                                        # Update value of node depending on result
+            
 
         def random_moves(self, p1, p2, board):                     # Literally random_agent
             steps = np.random.randint(0, self.max_steps + 1)
@@ -262,6 +263,7 @@ class StudentAgent(Agent):
         # so far when it nears 2 seconds.
         start_time = time.time()
         root = self.MonteCarloTreeSearchNode(chess_board, my_pos, adv_pos, max_step)
+        #breakpoint()
         pos, dir = root.best_move()
 
         time_taken = time.time() - start_time
