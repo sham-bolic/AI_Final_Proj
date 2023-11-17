@@ -1,7 +1,8 @@
-- name: "Your full name as appears on your transcript"
-  mcgill_id: "Your mcgill id"
-  email: "email@mail.mcgill.ca"
+- name: "Shotaro Nakamura"
+  mcgill_id: "261116957"
+  email: "shotaro.nakamura2@mail.mcgill.ca"
+  
+  - name: "Maximillian Fong"
+  mcgill_id: "261120319"
+  email: "maximillian.fong@mail.mcgill.ca"
 
-- name: "Your full name as appears on your transcript"
-  mcgill_id: "Your mcgill id"
-  email: "email@mail.mcgill.ca"
