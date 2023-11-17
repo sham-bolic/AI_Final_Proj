@@ -5,15 +5,13 @@ import sys
 import numpy as np
 from copy import deepcopy
 import time
-import math 
-import random
 
 
 @register_agent("student_agent")
 class StudentAgent(Agent):
 
     class MonteCarloTreeSearchNode() :
-        def __init__ (self, chess_board, my_pos, adv_pos, max_steps, dir = None,parent=None, c = math.sqrt(2)) :
+        def __init__ (self, chess_board, my_pos, adv_pos, max_steps, dir = None,parent=None, c = np.sqrt(2)) :
             self.chess_board = chess_board
             self.c = c
             self.p0_pos = my_pos
@@ -151,9 +149,12 @@ class StudentAgent(Agent):
             return x
         
         def best_move(self):
-            n_simulation = 100
+            
+            start_time = time.time()
+            turn_time = 0.5             # set to 0.5 for testing, 1.9 for real min max
+            end_time = start_time + turn_time
 
-            for i in range(n_simulation):
+            while(time.time()<end_time):
                 current = self.selection()
                 result = current.simulate()
                 current.backpropagate(result)
