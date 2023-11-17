@@ -28,7 +28,7 @@ class StudentAgent(Agent):
             self.max_steps = max_steps
             self.all_moves = None
             self.all_moves = self.legal_moves() # List of legal moves
-            self.dir = dir
+            self.dir = dir      # parents decision
 
         def tree_policy(self):          
             UCT = [((child.Q/child.N) +                              # Exploitation
@@ -54,7 +54,7 @@ class StudentAgent(Agent):
                 board, next_move, self.p1_pos, self.max_steps, dir, parent = self
             )
             
-            num_bar = StudentAgent.allowed_barriers(next_move, self.chess_board)
+            num_bar = len(StudentAgent.allowed_barriers(next_move, self.chess_board))            # Heuristic to avoid trapping self in
             if (num_bar == 1) :
                 child.Q += -1000
             elif (num_bar == 2) :
@@ -243,10 +243,6 @@ class StudentAgent(Agent):
         x, y = my_pos
         legal_walls = [i for i in range (0,4) if not chess_board[x, y, i]]
         return legal_walls                                              # returning the possible places that wall can be placed for given my_pos
-
-    def panic_room(walls):
-        assert len(walls) >= 1                                          # insuring that were surrounded by 4 walls
-          
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         """
