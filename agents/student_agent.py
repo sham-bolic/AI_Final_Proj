@@ -45,7 +45,15 @@ class StudentAgent(Agent):
             return curr_node
                 
         def expand(self):                               # Make next move and add as child
-            next_move = self.all_moves.pop(np.random.randint(0, len(self.all_moves)))
+            adv_bar = StudentAgent.allowed_barriers(self.p1_pos, self.chess_board)
+            if (len(adv_bar) == 1):
+                move = self.moves[dir]
+                if (adv_bar + (move[0], move[1]) in self.all_moves): 
+                    next_move = adv_bar + (move[0], move[1])
+                    self.all_moves.remove(adv_bar + (move[0], move[1]))
+            else:
+                next_move = self.all_moves.pop(np.random.randint(0, len(self.all_moves)))
+            
             board, dir = self.move(self.chess_board, next_move)
 
             child = StudentAgent.MonteCarloTreeSearchNode(
@@ -57,6 +65,9 @@ class StudentAgent(Agent):
                 child.Q += -1000
             elif (num_bar == 2) :
                 child.Q += -100
+            if (child.N >= 3):                   # Heuristic to try and ensure to play winning moves
+                if (child.Q == child.N):
+                    child.Q += 100
 
             self.children.append(child)
             return child
@@ -151,7 +162,7 @@ class StudentAgent(Agent):
         def best_move(self):
             
             start_time = time.time()
-            turn_time = 0.5             # set to 0.5 for testing, 1.9 for real min max
+            turn_time = 1.9             # set to 0.5 for testing, 1.9 for real min max
             end_time = start_time + turn_time
 
             while(time.time()<end_time):
@@ -161,6 +172,7 @@ class StudentAgent(Agent):
             best_node = self.tree_policy()
             best_pos = best_node.p0_pos
             best_dir = best_node.dir
+            breakpoint()
             return best_pos, best_dir
 
 
