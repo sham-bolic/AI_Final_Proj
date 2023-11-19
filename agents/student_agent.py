@@ -59,14 +59,14 @@ class StudentAgent(Agent):
             
             num_bar = len(StudentAgent.allowed_barriers(next_move, self.chess_board))            # Heuristic to avoid trapping self in
             if (num_bar == 1) :
-                child.Q += -1000
+                child.Q += -5
             elif (num_bar == 2) :
-                child.Q += -100
+                child.Q += -5
             if (child.Q == child.N and child.N > 2):
-                child.Q += 10000
-            elif(-child.Q == child.N and child.N > 3):
-                child.Q += -1000
-            child.Q -= self.manhatten_distance(next_move, self.p1_pos)
+                child.Q += 5
+            elif(-child.Q == child.N and child.N > 1):
+                child.Q += -2
+            child.Q -= self.manhatten_distance(next_move, self.p1_pos)/2
 
             self.children.append(child)
             return child
@@ -102,6 +102,7 @@ class StudentAgent(Agent):
                         _, result = self.check_endgame(board, p2, p1)
                     score += result      
                 barrier_list[i] = score
+                
             best_barrier = np.argmax(barrier_list)
             self.backpropagate(barrier_list[best_barrier])
             return best_barrier
@@ -196,7 +197,6 @@ class StudentAgent(Agent):
             best_node = self.tree_policy()
             best_pos = best_node.p0_pos
             best_dir = best_node.dir
-            breakpoint()
             return best_pos, best_dir
 
 
