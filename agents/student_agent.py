@@ -11,7 +11,7 @@ import time
 class StudentAgent(Agent):
 
     class MonteCarloTreeSearchNode() :
-        def __init__ (self, chess_board, my_pos, adv_pos, max_steps, dir = None,parent=None, c = np.sqrt(2)) :
+        def __init__ (self, chess_board, my_pos, adv_pos, max_steps, aggression = False, dir = None,parent=None, c = np.sqrt(2)) :
             self.chess_board = chess_board
             self.c = c
             self.p0_pos = my_pos
@@ -23,9 +23,10 @@ class StudentAgent(Agent):
             self.children = []
             self.N = 0                  # number of times visited
             self.Q = 0                  # score of node (win: +1, loss: -1, tie: +0.5)
+            self.aggression = aggression
             self.max_steps = max_steps
             self.all_moves = None
-            self.all_moves = self.legal_moves() # List of legal moves
+            self.all_moves = self.legal_moves(self.p0_pos, self.p1_pos, self.chess_board) # List of legal moves
             self.dir = dir      # parents decision
 
         def tree_policy(self):          
@@ -54,7 +55,7 @@ class StudentAgent(Agent):
             board, dir = self.move(self.chess_board, next_move)
 
             child = StudentAgent.MonteCarloTreeSearchNode(
-                board, next_move, self.p1_pos, self.max_steps, dir, parent = self
+                board, next_move, self.p1_pos, self.max_steps, game_state = self.game_state + 1, dir = dir, parent = self
             )
             
             num_bar = len(StudentAgent.allowed_barriers(next_move, self.chess_board))            # Heuristic to avoid trapping self in
@@ -113,13 +114,12 @@ class StudentAgent(Agent):
             return barriers[np.random.randint(0, len(barriers))]
 
 
-        def legal_moves(self):                                  # find all possible moves
-            o_pos = deepcopy(self.p0_pos)
+        def legal_moves(self, o_pos, adv_pos, chess_board):                                  # find all possible moves
             steps = [[] for k in range(self.max_steps+1)]       # create 2D array to store possible moves for each step
             steps[0].append(o_pos)                                 # step 0 = original position
             for i in range(self.max_steps):
                 for pos in steps[i]:
-                    moves = StudentAgent.allowed_dirs(pos, self.p1_pos, self.chess_board)  
+                    moves = StudentAgent.allowed_dirs(pos, adv_pos, chess_board)  
                     for move in moves:                          # iterates through legal moves given current position
                         new_move = tuple(np.add(pos, self.map[move]))           # getting new pos (x + a, y + b)
                         if new_move not in steps:               # checking if move is contained in array
@@ -169,7 +169,7 @@ class StudentAgent(Agent):
             p0_score = list(father.values()).count(p0_r)
             p1_score = list(father.values()).count(p1_r)
             if p0_r == p1_r:
-                return False, -9999                    # -5 if false
+                return False, -9999                    # Doesn't matter what number is returned with bool
             player_win = None
             if p0_score > p1_score:
                 player_win = 1
@@ -197,6 +197,7 @@ class StudentAgent(Agent):
             best_node = self.tree_policy()
             best_pos = best_node.p0_pos
             best_dir = best_node.dir
+            breakpoint()
             return best_pos, best_dir
 
 
@@ -250,6 +251,16 @@ class StudentAgent(Agent):
             chess_board[x + move[0], y + move[1], self.opposites[dir]] = True
             
             return p1, p2, chess_board
+        
+        def aggressive_playstyle(self, next_move,  chessboard):
+            current_moves = len(self.adv_moves(self.p0_pos, self.chess_board))
+            next_moves    = len(self.adv_moves(next_move, chessboard))
+            return (current_moves - next_moves)
+
+        def adv_moves(self, next_move,chessboard):
+            return self.legal_moves(self.p1_pos, next_move, chessboard)
+
+            
 
     def __init__(self):
         super(StudentAgent, self).__init__()
@@ -306,6 +317,7 @@ class StudentAgent(Agent):
         print("My AI's turn took ", time_taken, "seconds.")
 
         # dummy return
+        
         return pos, dir
 
 
