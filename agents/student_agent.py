@@ -55,7 +55,7 @@ class StudentAgent(Agent):
             board, dir = self.move(self.chess_board, next_move)
 
             child = StudentAgent.MonteCarloTreeSearchNode(
-                board, next_move, self.p1_pos, self.max_steps, game_state = self.game_state + 1, dir = dir, parent = self
+                board, next_move, self.p1_pos, self.max_steps, dir = dir, parent = self
             )
             
             num_bar = len(StudentAgent.allowed_barriers(next_move, self.chess_board))            # Heuristic to avoid trapping self in
@@ -67,7 +67,7 @@ class StudentAgent(Agent):
                 child.Q += 5
             elif(-child.Q == child.N and child.N > 1):
                 child.Q += -2
-            child.Q -= self.manhatten_distance(next_move, self.p1_pos)/2
+            child.Q += self.aggressive_playstyle(next_move, board)
 
             self.children.append(child)
             return child
@@ -197,7 +197,6 @@ class StudentAgent(Agent):
             best_node = self.tree_policy()
             best_pos = best_node.p0_pos
             best_dir = best_node.dir
-            breakpoint()
             return best_pos, best_dir
 
 
@@ -252,7 +251,7 @@ class StudentAgent(Agent):
             
             return p1, p2, chess_board
         
-        def aggressive_playstyle(self, next_move,  chessboard):
+        def aggressive_playstyle(self, next_move, chessboard):
             current_moves = len(self.adv_moves(self.p0_pos, self.chess_board))
             next_moves    = len(self.adv_moves(next_move, chessboard))
             return (current_moves - next_moves)
