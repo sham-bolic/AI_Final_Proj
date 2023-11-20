@@ -48,7 +48,7 @@ class StudentAgent(Agent):
         def manhatten_distance(self, p1, p2):
             x1, y1 = p1
             x2, y2 = p2
-            return (np.abs(x1-x2)+np.abs(y1-y2))
+            return (np.abs(x1-x2)+np.abs(y1-y2))/4
                 
         def expand(self):                               # Make next move and add as child
             next_move = self.all_moves.pop(np.random.randint(0, len(self.all_moves)))
@@ -60,15 +60,18 @@ class StudentAgent(Agent):
             
             num_bar = len(StudentAgent.allowed_barriers(next_move, self.chess_board))            # Heuristic to avoid trapping self in
             if (num_bar == 1) :
-                child.Q += -5
+                child.Q += -50
             elif (num_bar == 2) :
                 child.Q += -5
-            if (child.Q == child.N and child.N > 2):
+            '''if (child.Q == child.N and child.N > 2):
                 child.Q += 5
             elif(-child.Q == child.N and child.N > 1):
-                child.Q += -2
-            child.Q += self.aggressive_playstyle(next_move, board)
-
+                child.Q += -2'''
+            #child.Q -= self.manhatten_distance(next_move, self.p1_pos)
+            if (child.Q > 0):
+                aggro = self.aggressive_playstyle(next_move, board)
+                if (aggro > 0):
+                    child.Q += aggro
             self.children.append(child)
             return child
                 
@@ -93,7 +96,7 @@ class StudentAgent(Agent):
 
             for i in StudentAgent.allowed_barriers(p1, board):
                 score = 0
-                for _ in range(3):
+                for _ in range(4):
                     while (not self.is_terminal_node(board, p1, p2)):       # While game is not over
                         p1, p2, board = self.random_moves(p2, p1, board)           # Take turns playing
                         original_player = not original_player 
@@ -194,6 +197,7 @@ class StudentAgent(Agent):
                 result = current.simulate()
                 current.backpropagate(result)
                 sims += 1
+            #breakpoint()
             best_node = self.tree_policy()
             best_pos = best_node.p0_pos
             best_dir = best_node.dir
