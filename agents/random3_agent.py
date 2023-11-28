@@ -135,6 +135,7 @@ class Random3Agent(Agent):
                 # Check if we have better chance of winning
                 if p0_score >= p1_score:
                     wins += 1
+                breakpoint()
 
             # Check if we have not found a better move
             if wins > best_wins:
