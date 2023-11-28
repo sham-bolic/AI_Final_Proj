@@ -28,6 +28,7 @@ class StudentAgent(Agent):
             self.all_moves = None
             self.all_moves = self.legal_moves(self.p0_pos, self.p1_pos, self.chess_board) # List of legal moves
             self.dir = dir      # parents decision
+            self.simulation_moves = None
 
         def tree_policy(self):      
             UCT = [((child.Q/child.N) +                              # Exploitation
@@ -221,11 +222,12 @@ class StudentAgent(Agent):
         def best_move(self):
             
             start_time = time.time()
-            turn_time = 1.9             # set to 0.5 for testing, 1.9 for real min max
+            turn_time = 0.5             # set to 0.5 for testing, 1.9 for real min max
             end_time = start_time + turn_time
             sims = 0
             while(time.time()<end_time):
                 current = self.selection()
+                current.simulation_moves = current.legal_moves(current.p0_pos, self.p1_pos, self.chess_board)
                 result = current.simulate()
                 current.backpropagate(result)
                 sims += 1
@@ -248,7 +250,7 @@ class StudentAgent(Agent):
             p2 = self.p1_pos
             original_player = True 
             while (not self.is_terminal_node(board, p1, p2)):       # While game is not over
-                p1, p2, board = self.random_moves(p2, p1, board)           # Take turns playing
+                p1, p2, board = self.simulation_step(board, p2, p1)           # Take turns playing
                 original_player = not original_player 
             if (original_player): 
               _, result = self.check_endgame(board, p1, p2)
@@ -257,8 +259,8 @@ class StudentAgent(Agent):
             return result                                        # Update value of node depending on result
             
 
-        def random_moves(self, p1, p2, board):                     # Literally random_agent
-            chess_board = deepcopy(board)
+        def random_moves(self, board):                     # Literally random_agent
+            '''chess_board = deepcopy(board)
             
             steps = np.random.randint(0, self.max_steps + 1)
 
@@ -286,7 +288,29 @@ class StudentAgent(Agent):
             move = self.moves[dir]
             chess_board[x + move[0], y + move[1], self.opposites[dir]] = True
             
-            return p1, p2, chess_board
+            return p1, p2, chess_board'''
+            chess_board = deepcopy(board)
+            steps = np.random.randint(0, self.max_steps + 1)
+            barriers = [1]
+            
+            while(len(barriers) == 1 and len(self.simulation_moves) > 0):
+                move = self.simulation_moves.pop(np.random.randint(len(self.simulation_moves)))
+                #breakpoint()
+                barriers = StudentAgent.allowed_barriers(move, chess_board)
+            return move
+        
+        def simulation_step(self, chess_board, my_pos, adv_pos):
+            self.simulation_moves = self.legal_moves(my_pos, adv_pos,chess_board)
+            my_pos = self.random_moves(chess_board)
+            walls = StudentAgent.allowed_barriers(my_pos, chess_board)
+            dir = walls[np.random.randint(len(walls))]
+            # Set the barrier to True
+            x, y = my_pos
+            chess_board[x, y, dir] = True
+            # Set the opposite barrier to True
+            move = self.moves[dir]
+            chess_board[x + move[0], y + move[1], self.opposites[dir]] = True
+            return my_pos, adv_pos, chess_board
         
         def aggressive_playstyle(self, next_move, chessboard):
             current_moves = len(self.adv_moves(self.p0_pos, self.chess_board))
