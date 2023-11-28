@@ -78,7 +78,7 @@ class StudentAgent(Agent):
         def move(self, board, pos):                            # takes position and simulates a move 
             chess_board = deepcopy(board)
             x, y = pos
-            dir = self.aggressive_barrier(pos)
+            dir = self.barrier_sims(pos)
 
             # Set the barrier to True
             chess_board[x, y, dir] = True
@@ -96,18 +96,27 @@ class StudentAgent(Agent):
 
             for i in StudentAgent.allowed_barriers(p1, board):
                 score = 0
-                for _ in range(4):
+                for _ in range(2):
+                    current_state = deepcopy(self.simulation_moves)
+
                     while (not self.is_terminal_node(board, p1, p2)):       # While game is not over
-                        p1, p2, board = self.random_moves(p2, p1, board)           # Take turns playing
+                        p1, p2, board = self.simulation_step(board, p2, p1)           # Take turns playing
                         original_player = not original_player 
                     if (original_player): 
                         _, result = self.check_endgame(board, p1, p2)
                     else:
                         _, result = self.check_endgame(board, p2, p1)
-                    score += result      
+                    score += result
+                    self.simulation_moves = current_state      
                 barrier_list[i] = score
-                
+            
+            agressive_bars, pref_bar = self.aggressive_barrier(move)
+            for i in agressive_bars:
+                barrier_list[i] += 0.5
+            barrier_list[pref_bar] += 0.5
+
             best_barrier = np.argmax(barrier_list)
+            #breakpoint()
             self.backpropagate(barrier_list[best_barrier])
             return best_barrier
         
@@ -140,10 +149,9 @@ class StudentAgent(Agent):
             else:
                 dir = preferred_dir[1]
 
-            if dir in allowed_barriers:
-                return dir
+            return preferred_dir, dir
             
-            return self.random_barrier(p1)
+            
 
         def random_barrier(self, pos):
             barriers = StudentAgent.allowed_barriers(pos, self.chess_board)
@@ -289,6 +297,7 @@ class StudentAgent(Agent):
             chess_board[x + move[0], y + move[1], self.opposites[dir]] = True
             
             return p1, p2, chess_board'''
+            
             chess_board = deepcopy(board)
             steps = np.random.randint(0, self.max_steps + 1)
             barriers = [1]
