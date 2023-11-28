@@ -125,12 +125,12 @@ class StudentAgent(Agent):
             
             preferred_dir = []
 
-            if x_diff >= 0:
+            if x_diff > 0:
                 preferred_dir.append(2)
             else:
                 preferred_dir.append(0)
 
-            if y_diff >= 0:
+            if y_diff > 0:
                 preferred_dir.append(1)
             else: 
                 preferred_dir.append(3)
@@ -222,7 +222,7 @@ class StudentAgent(Agent):
         def best_move(self):
             
             start_time = time.time()
-            turn_time = 0.5             # set to 0.5 for testing, 1.9 for real min max
+            turn_time = 1.9             # set to 0.5 for testing, 1.9 for real min max
             end_time = start_time + turn_time
             sims = 0
             while(time.time()<end_time):
