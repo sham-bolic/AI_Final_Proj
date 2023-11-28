@@ -259,25 +259,29 @@ class StudentAgent(Agent):
 
         def random_moves(self, p1, p2, board):                     # Literally random_agent
             chess_board = deepcopy(board)
-            steps = np.random.randint(0, self.max_steps + 1)
+            barriers = []
+            while (len(barriers) <= 1):
+                steps = np.random.randint(0, self.max_steps + 1)
 
-            # Pick steps random but allowable moves
-            for _ in range(steps):
-                r, c = p1
-                # Build a list of the moves we can make
-                allowed_dirs = [ d                                
-                    for d in range(0,4)                                      # 4 moves possible
-                    if not board[r,c,d] and                       # chess_board True means wall
-                    not p2 == (r+self.moves[d][0],c+self.moves[d][1])]  # cannot move through Adversary
-                if len(allowed_dirs)==0:
-                    # If no possible move, we must be enclosed by our Adversary
-                    break
-                random_dir = allowed_dirs[np.random.randint(0, len(allowed_dirs))]
-                # This is how to update a row,col by the entries in moves 
-                # to be consistent with game logic
-                m_r, m_c = self.moves[random_dir]
-                p1 = (r + m_r, c + m_c)
-            dir = self.random_barrier(p1)
+                # Pick steps random but allowable moves
+                for _ in range(steps):
+                    r, c = p1
+                    # Build a list of the moves we can make
+                    allowed_dirs = [ d                                
+                        for d in range(0,4)                                      # 4 moves possible
+                        if not board[r,c,d] and                       # chess_board True means wall
+                        not p2 == (r+self.moves[d][0],c+self.moves[d][1])]  # cannot move through Adversary
+                    if len(allowed_dirs)==0:
+                        # If no possible move, we must be enclosed by our Adversary
+                        break
+                    random_dir = allowed_dirs[np.random.randint(0, len(allowed_dirs))]
+                    # This is how to update a row,col by the entries in moves 
+                    # to be consistent with game logic
+                    m_r, m_c = self.moves[random_dir]
+                    p1 = (r + m_r, c + m_c)
+                    barriers = StudentAgent.allowed_barriers(p1, chess_board)
+                    breakpoint()
+            dir = barriers[np.random.randint(len(barriers))]
             x, y = p1
             # Set the barrier to True
             chess_board[x, y, dir] = True
