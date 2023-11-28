@@ -29,10 +29,11 @@ class StudentAgent(Agent):
             self.all_moves = self.legal_moves(self.p0_pos, self.p1_pos, self.chess_board) # List of legal moves
             self.dir = dir      # parents decision
 
-        def tree_policy(self):          
+        def tree_policy(self):      
             UCT = [((child.Q/child.N) +                              # Exploitation
                     (child.c * np.sqrt(np.log(self.N/child.N))))    # Exploration
                       for child in self.children]                    # For each child node
+            #breakpoint()    
             return self.children[np.argmax(UCT)]                     # Returning best child based on UCT            
         
         def selection (self):                           # Selection policy
@@ -48,7 +49,7 @@ class StudentAgent(Agent):
         def manhatten_distance(self, p1, p2):
             x1, y1 = p1
             x2, y2 = p2
-            return (np.abs(x1-x2)+np.abs(y1-y2))/4
+            return (np.abs(x1-x2)+np.abs(y1-y2))/2
                 
         def expand(self):                               # Make next move and add as child
             next_move = self.all_moves.pop(np.random.randint(0, len(self.all_moves)))
@@ -63,22 +64,20 @@ class StudentAgent(Agent):
                 child.Q += -50
             elif (num_bar == 2) :
                 child.Q += -5
-            '''if (child.Q == child.N and child.N > 2):
-                child.Q += 5
-            elif(-child.Q == child.N and child.N > 1):
-                child.Q += -2'''
-            #child.Q -= self.manhatten_distance(next_move, self.p1_pos)
-            if (child.Q > 0):
+           
+            child.Q -= self.manhatten_distance(next_move, self.p1_pos)
+
+            '''if (child.Q > 0):
                 aggro = self.aggressive_playstyle(next_move, board)
                 if (aggro > 0):
-                    child.Q += aggro
+                    child.Q += aggro'''
             self.children.append(child)
             return child
                 
         def move(self, board, pos):                            # takes position and simulates a move 
             chess_board = deepcopy(board)
             x, y = pos
-            dir = self.barrier_sims(pos)
+            dir = self.aggressive_barrier(pos)
 
             # Set the barrier to True
             chess_board[x, y, dir] = True
@@ -111,7 +110,40 @@ class StudentAgent(Agent):
             self.backpropagate(barrier_list[best_barrier])
             return best_barrier
         
+        def aggressive_barrier(self, move):
+            p1 = move
+            p2 = self.p1_pos
+            board = deepcopy(self.chess_board)
+
+            allowed_barriers = StudentAgent.allowed_barriers(p1, board)
+
+            x1,y1 = p1
+            x2,y2 = p2
+            x_diff = x2 - x1        # > 0 r, < 0 l 
+            y_diff = y2 - y1        # > 0 d, < 0 u
             
+            preferred_dir = []
+
+            if x_diff >= 0:
+                preferred_dir.append(2)
+            else:
+                preferred_dir.append(0)
+
+            if y_diff >= 0:
+                preferred_dir.append(1)
+            else: 
+                preferred_dir.append(3)
+
+            if np.abs(x_diff) > np.abs(y_diff):
+                dir = preferred_dir[0]
+            else:
+                dir = preferred_dir[1]
+
+            if dir in allowed_barriers:
+                return dir
+            
+            return self.random_barrier(p1)
+
         def random_barrier(self, pos):
             barriers = StudentAgent.allowed_barriers(pos, self.chess_board)
             return barriers[np.random.randint(0, len(barriers))]
