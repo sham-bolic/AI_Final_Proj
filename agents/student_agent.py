@@ -32,12 +32,12 @@ class StudentAgent(Agent):
 
         def tree_policy(self):      
             UCT = [((child.Q/child.N) +                              # Exploitation
-                    (child.c * np.sqrt(np.log(self.N/child.N))))    # Exploration
+                    (child.c * np.sqrt(np.log(self.N/child.N))))     # Exploration
                       for child in self.children]                    # For each child node
             #breakpoint()    
             return self.children[np.argmax(UCT)]                     # Returning best child based on UCT            
         
-        def selection (self):                           # Selection policy
+        def selection (self):                                        # Selection policy
             curr_node = self
             
             while not curr_node.is_terminal_node(curr_node.chess_board, curr_node.p0_pos, curr_node.p1_pos):     # While is not the end of game
@@ -67,11 +67,6 @@ class StudentAgent(Agent):
                 child.Q += -5
            
             child.Q -= self.manhatten_distance(next_move, self.p1_pos)
-
-            '''if (child.Q > 0):
-                aggro = self.aggressive_playstyle(next_move, board)
-                if (aggro > 0):
-                    child.Q += aggro'''
             self.children.append(child)
             return child
                 
@@ -98,14 +93,25 @@ class StudentAgent(Agent):
                 score = 0
                 for _ in range(2):
                     current_state = deepcopy(self.simulation_moves)
-
-                    while (not self.is_terminal_node(board, p1, p2)):       # While game is not over
-                        p1, p2, board = self.simulation_step(board, p2, p1)           # Take turns playing
-                        original_player = not original_player 
-                    if (original_player): 
-                        _, result = self.check_endgame(board, p1, p2)
+                    turns = 20                                                                    # 10 per player
+                    while (not self.is_terminal_node(board, p1, p2) and turns > 0):               # While game is not over
+                        p1, p2, board = self.simulation_step(board, p2, p1)                       # Take turns playing
+                        original_player = not original_player
+                    if (self.is_terminal_node(board, p1, p2)): 
+                        if (original_player): 
+                            _, result = self.check_endgame(board, p1, p2)
+                        else:
+                            _, result = self.check_endgame(board, p2, p1)            
+                            turns -= 1  
                     else:
-                        _, result = self.check_endgame(board, p2, p1)
+                        our_moves = len(self.legal_moves(p1, p2, board))
+                        adv_moves = len(self.legal_moves(p2, p1, board))
+                        if our_moves > adv_moves:
+                            result = 1
+                        elif our_moves == adv_moves:
+                            result = 0.5
+                        else:
+                            result = -1
                     score += result
                     self.simulation_moves = current_state      
                 barrier_list[i] = score
@@ -150,13 +156,7 @@ class StudentAgent(Agent):
                 dir = preferred_dir[1]
 
             return preferred_dir, dir
-            
-            
-
-        def random_barrier(self, pos):
-            barriers = StudentAgent.allowed_barriers(pos, self.chess_board)
-            return barriers[np.random.randint(0, len(barriers))]
-
+        
 
         def legal_moves(self, o_pos, adv_pos, chess_board):                                  # find all possible moves
             steps = [[] for k in range(self.max_steps+1)]       # create 2D array to store possible moves for each step
@@ -223,9 +223,11 @@ class StudentAgent(Agent):
                 player_win = 0.5  # Tie
             return True, player_win                 # p1 = 0, p2 = 1, tie = -1
         
+
         def board_size(self):                       # Board is NxNx4 capturing N
             x, _, _ = np.shape(self.chess_board)
             return x
+        
         
         def best_move(self):
             
@@ -257,47 +259,29 @@ class StudentAgent(Agent):
             p1 = self.p0_pos
             p2 = self.p1_pos
             original_player = True 
-            while (not self.is_terminal_node(board, p1, p2)):       # While game is not over
-                p1, p2, board = self.simulation_step(board, p2, p1)           # Take turns playing
-                original_player = not original_player 
-            if (original_player): 
-              _, result = self.check_endgame(board, p1, p2)
+            turns = 20                                                                    # 10 per player
+            while (not self.is_terminal_node(board, p1, p2) and turns > 0):               # While game is not over
+                p1, p2, board = self.simulation_step(board, p2, p1)                       # Take turns playing
+                original_player = not original_player
+            if (self.is_terminal_node(board, p1, p2)): 
+                if (original_player): 
+                    _, result = self.check_endgame(board, p1, p2)
+                else:
+                    _, result = self.check_endgame(board, p2, p1)            
+                    turns -= 1  
             else:
-              _, result = self.check_endgame(board, p2, p1)                  
-            return result                                        # Update value of node depending on result
+                our_moves = len(self.legal_moves(p1, p2, board))
+                adv_moves = len(self.legal_moves(p2, p1, board))
+                if our_moves > adv_moves:
+                    result = 1
+                elif our_moves == adv_moves:
+                    result = 0.5
+                else:
+                    result = -1
+            return result                                                                # Update value of node depending on result
             
 
-        def random_moves(self, board):                     # Literally random_agent
-            '''chess_board = deepcopy(board)
-            
-            steps = np.random.randint(0, self.max_steps + 1)
-
-            # Pick steps random but allowable moves
-            for _ in range(steps):
-                r, c = p1
-                # Build a list of the moves we can make
-                allowed_dirs = [ d                                
-                    for d in range(0,4)                                      # 4 moves possible
-                    if not board[r,c,d] and                       # chess_board True means wall
-                    not p2 == (r+self.moves[d][0],c+self.moves[d][1])]  # cannot move through Adversary
-                if len(allowed_dirs)==0:
-                    # If no possible move, we must be enclosed by our Adversary
-                    break
-                random_dir = allowed_dirs[np.random.randint(0, len(allowed_dirs))]
-                # This is how to update a row,col by the entries in moves 
-                # to be consistent with game logic
-                m_r, m_c = self.moves[random_dir]
-                p1 = (r + m_r, c + m_c)
-            dir = self.random_barrier(p1)
-            x, y = p1
-            # Set the barrier to True
-            chess_board[x, y, dir] = True
-            # Set the opposite barrier to True
-            move = self.moves[dir]
-            chess_board[x + move[0], y + move[1], self.opposites[dir]] = True
-            
-            return p1, p2, chess_board'''
-            
+        def random_moves(self, board):                                      # Literally random_agent
             chess_board = deepcopy(board)
             steps = np.random.randint(0, self.max_steps + 1)
             barriers = [1]
@@ -326,10 +310,6 @@ class StudentAgent(Agent):
             next_moves    = len(self.adv_moves(next_move, chessboard))
             return (current_moves - next_moves)
 
-        def adv_moves(self, next_move,chessboard):
-            return self.legal_moves(self.p1_pos, next_move, chessboard)
-
-            
 
     def __init__(self):
         super(StudentAgent, self).__init__()
