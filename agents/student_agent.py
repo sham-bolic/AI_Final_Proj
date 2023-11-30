@@ -93,7 +93,7 @@ class StudentAgent(Agent):
                 score = 0
                 for _ in range(2):
                     current_state = deepcopy(self.simulation_moves)
-                    turns = 20                                                                    # 10 per player
+                    turns = 10                                                                    # 5 per player
                     while (not self.is_terminal_node(board, p1, p2) and turns > 0):               # While game is not over
                         p1, p2, board = self.simulation_step(board, p2, p1)                       # Take turns playing
                         original_player = not original_player
