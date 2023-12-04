@@ -23,15 +23,33 @@ class StudentAgent(Agent):
             self.map = {0:(-1, 0), 1:(0, 1), 2:(1, 0), 3:(0, -1)}
             self.parent = parent
             self.children = []
+<<<<<<< Updated upstream
             self.N = 0                  # number of times visited
             self.Q = 0                  # value of node
             self.A = 0                  # number of actions taken
+=======
+            self.N = 1                  # number of times visited
+            self.Q = 0                  # score of node (win: +1, loss: -1, tie: +0.5)
+            self.aggression = aggression
+>>>>>>> Stashed changes
             self.max_steps = max_steps
             self.all_moves = None
             self.all_moves = self.legal_moves() # List of legal moves
 
+<<<<<<< Updated upstream
         def tree_policy(self):          # UCT unused as of 12/11/2023
             return (self.Q) + ( self.c * math.sqrt(math.log(self.N) / self.A))  
+=======
+        def tree_policy(self):
+            print(f'self: {self}')
+            print(self.children)      
+            UCT = [((child.Q/child.N) +                              # Exploitation
+                    (child.c * np.sqrt(np.log(self.N/child.N))))     # Exploration
+                      for child in self.children]                    # For each child node
+            print(UCT)
+            #breakpoint()    
+            return self.children[np.argmax(UCT)]                     # Returning best child based on UCT            
+>>>>>>> Stashed changes
         
         def is_terminal_node(self):     # Matches endgame and extracts boolean
             x, _ = self.check_endgame()
@@ -39,16 +57,46 @@ class StudentAgent(Agent):
         
         def selection (self):                           # Selection policy
             curr_node = self
+<<<<<<< Updated upstream
             while not curr_node.is_terminal_node():     # While is not the end of game
                 if not curr_node.is_fully_expanded():   # While there are still moves to be made
                     return curr_node.expand()           # Expand the node
+=======
+            
+            while (not curr_node.is_terminal_node(curr_node.chess_board, curr_node.p0_pos, curr_node.p1_pos)):     # While is not the end of game
+            
+                if (self.all_moves):     # While there are still moves to be made
+                    curr_node.expand()                      # Expand the node
+                    return None
+                else:
+                    curr_node = curr_node.tree_policy() # Choose best child and return
+
+            print(f'curr_node: {curr_node}')
+            return curr_node
+        
+        def manhatten_distance(self, p1, p2):
+            x1, y1 = p1
+            x2, y2 = p2
+            return (np.abs(x1-x2)+np.abs(y1-y2))/2
+>>>>>>> Stashed changes
                 
         def expand(self):                               # Make next move and add as child
             move = random.choice(self.all_moves, 1)
             self.all_moves.remove(move)
             
+<<<<<<< Updated upstream
             child = MonteCarloTreeSearchNode(
             )
+=======
+            num_bar = len(StudentAgent.allowed_barriers(next_move, self.chess_board))            # Heuristic to avoid trapping self in
+            if (num_bar == 1) :
+                child.Q += -50
+            elif (num_bar == 2) :
+                child.Q += -5
+            child.Q -= self.manhatten_distance(next_move, self.p1_pos)
+            self.children.append(child)
+            return child
+>>>>>>> Stashed changes
                 
         def move(self, pos):                            # takes position and simulates a move 
             chess_board = deepcopy(self.chess_board)
@@ -58,6 +106,7 @@ class StudentAgent(Agent):
             # Set the opposite barrier to True
             move = self.moves[dir]
             chess_board[x + move[0], y + move[1], self.opposites[dir]] = True
+<<<<<<< Updated upstream
             return chess_board
             
         def random_barrier(self, pos):
@@ -67,6 +116,69 @@ class StudentAgent(Agent):
 
         def legal_moves(self):                                  # find all possible moves
             o_pos = deepcopy(self.p0_pos)
+=======
+            return chess_board, dir
+        
+        def barrier_sims(self, move):
+            total = 0
+            barrier_list = [-1,-1,-1,-1]
+            for i in StudentAgent.allowed_barriers(move, self.chess_board):
+                barrier_list[i] = 1
+                total += 1
+
+            pref_bar1, pref_bar2 = self.aggressive_barrier(move)
+            if barrier_list[pref_bar1] > 0:
+                barrier_list[pref_bar1] += 1
+                total += 1
+            if barrier_list[pref_bar2] > 0:
+                barrier_list[pref_bar2] += 0.5
+                total += 0.5
+
+            p = [0, 0, 0 ,0]
+            for i in range(len(p)):
+                if barrier_list[i] > 0:
+                    p[i] = (barrier_list[i] / total)
+                    
+            index = np.arange(0,4)
+            best_barrier = np.random.choice(index, p=p)
+            return best_barrier
+        
+        def aggressive_barrier(self, move):
+            p1 = move
+            p2 = self.p1_pos
+            board = deepcopy(self.chess_board)
+
+            allowed_barriers = StudentAgent.allowed_barriers(p1, board)
+
+            x1,y1 = p1
+            x2,y2 = p2
+            x_diff = x2 - x1        # > 0 r, < 0 l 
+            y_diff = y2 - y1        # > 0 d, < 0 u
+            
+            preferred_dir = []
+
+            if x_diff > 0:
+                preferred_dir.append(2)
+            else:
+                preferred_dir.append(0)
+
+            if y_diff > 0:
+                preferred_dir.append(1)
+            else: 
+                preferred_dir.append(3)
+
+            if np.abs(x_diff) > np.abs(y_diff):
+                dir1 = preferred_dir[0]
+                dir2 = preferred_dir[1]
+            else:
+                dir1 = preferred_dir[1]
+                dir2 = preferred_dir[0]
+
+            return dir1, dir2
+        
+
+        def legal_moves(self, o_pos, adv_pos, chess_board):                                  # find all possible moves
+>>>>>>> Stashed changes
             steps = [[] for k in range(self.max_steps+1)]       # create 2D array to store possible moves for each step
             steps[0].append(o_pos)                                 # step 0 = original position
             for i in range(self.max_steps):
@@ -130,6 +242,115 @@ class StudentAgent(Agent):
         def board_size(self):                       # Board is NxNx4 capturing N
             x, _, _ = np.shape(self.chess_board)
             return x
+<<<<<<< Updated upstream
+=======
+        
+        
+        def best_move(self, t):
+            #print(f'Before best_move : {time.time() - t}')
+            start_time = time.time()
+            turn_time = 1.9             # set to 0.5 for testing, 1.9 for real min max
+            end_time = start_time + turn_time
+            sims = 0
+            bool = True
+            sim_avg = 0
+            loop = 0
+            while(time.time()<end_time):
+                t1 = time.time()
+                
+                current = self.selection()
+                #print(current)
+                
+                if current != None:
+                    if bool:
+                        #print(f'Time to expand: {time.time() - start_time}')
+                        bool = False
+                    breakpoint()
+                    current.simulation_moves = current.legal_moves(current.p0_pos, self.p1_pos, self.chess_board)
+                    breakpoint()
+                    result = current.simulate()
+                    breakpoint()
+                    current.backpropagate(result)
+                    breakpoint()
+                    sims += 1
+                    sim_avg += time.time() - t1
+                    
+                    
+                else:
+                    loop += time.time() - t1
+                
+            #print(f'Time per sim: {sim_avg/sims}, Total time simming: {sim_avg}, Number of sims: {sims}, loop: {loop}')        
+            t2 = time.time()
+            best_node = self.tree_policy()
+            #print(f'Tree policy: {time.time() - t2}')
+            best_pos = best_node.p0_pos
+            best_dir = best_node.dir
+            return best_pos, best_dir
+
+
+        def backpropagate(self, result):
+            self.N += 1
+            self.Q += result
+            if (self.parent):
+                self.parent.backpropagate(result)
+
+        def simulate(self):
+            board = deepcopy(self.chess_board) 
+            p1 = self.p0_pos
+            p2 = self.p1_pos
+            original_player = True 
+            turns = 20                                                                    # 10 per player
+            while (not self.is_terminal_node(board, p1, p2) and turns > 0):               # While game is not over
+                p1, p2, board = self.simulation_step(board, p2, p1)                       # Take turns playing
+                original_player = not original_player
+            if (self.is_terminal_node(board, p1, p2)): 
+                if (original_player): 
+                    _, result = self.check_endgame(board, p1, p2)
+                else:
+                    _, result = self.check_endgame(board, p2, p1)            
+                    turns -= 1  
+            else:
+                our_moves = len(self.legal_moves(p1, p2, board))
+                adv_moves = len(self.legal_moves(p2, p1, board))
+                if our_moves > adv_moves:
+                    result = 1
+                elif our_moves == adv_moves:
+                    result = 0.5
+                else:
+                    result = -1
+            return result                                                                # Update value of node depending on result
+            
+
+        def random_moves(self, board):                                      # Literally random_agent
+            chess_board = deepcopy(board)
+            steps = np.random.randint(0, self.max_steps + 1)
+            barriers = [1]
+            
+            while(len(barriers) == 1 and len(self.simulation_moves) > 0):
+                move = self.simulation_moves.pop(np.random.randint(len(self.simulation_moves)))
+                #breakpoint()
+                barriers = StudentAgent.allowed_barriers(move, chess_board)
+            return move
+        
+        def simulation_step(self, chess_board, my_pos, adv_pos):
+            self.simulation_moves = self.legal_moves(my_pos, adv_pos,chess_board)
+            my_pos = self.random_moves(chess_board)
+            walls = StudentAgent.allowed_barriers(my_pos, chess_board)
+            dir = walls[np.random.randint(len(walls))]
+            # Set the barrier to True
+            x, y = my_pos
+            chess_board[x, y, dir] = True
+            # Set the opposite barrier to True
+            move = self.moves[dir]
+            chess_board[x + move[0], y + move[1], self.opposites[dir]] = True
+            return my_pos, adv_pos, chess_board
+        
+        def aggressive_playstyle(self, next_move, chessboard):
+            current_moves = len(self.adv_moves(self.p0_pos, self.chess_board))
+            next_moves    = len(self.adv_moves(next_move, chessboard))
+            return (current_moves - next_moves)
+
+>>>>>>> Stashed changes
 
     def __init__(self):
         super(StudentAgent, self).__init__()
@@ -181,6 +402,18 @@ class StudentAgent(Agent):
         # time_taken during your search and breaking with the best answer
         # so far when it nears 2 seconds.
         start_time = time.time()
+<<<<<<< Updated upstream
+=======
+
+        root = self.MonteCarloTreeSearchNode(chess_board, my_pos, adv_pos, max_step)
+
+        #print(f'Time to make root node: {time.time() - start_time}')
+        t_bestmove = time.time()
+
+        pos, dir = root.best_move(t_bestmove)
+
+        #print(f'time for best_move: {time.time() - t_bestmove}')
+>>>>>>> Stashed changes
         time_taken = time.time() - start_time
         
         print("My AI's turn took ", time_taken, "seconds.")
