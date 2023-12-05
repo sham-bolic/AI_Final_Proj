@@ -23,23 +23,13 @@ class StudentAgent(Agent):
             self.map = {0:(-1, 0), 1:(0, 1), 2:(1, 0), 3:(0, -1)}
             self.parent = parent
             self.children = []
-<<<<<<< Updated upstream
-            self.N = 0                  # number of times visited
-            self.Q = 0                  # value of node
-            self.A = 0                  # number of actions taken
-=======
             self.N = 1                  # number of times visited
             self.Q = 0                  # score of node (win: +1, loss: -1, tie: +0.5)
             self.aggression = aggression
->>>>>>> Stashed changes
             self.max_steps = max_steps
             self.all_moves = None
             self.all_moves = self.legal_moves() # List of legal moves
 
-<<<<<<< Updated upstream
-        def tree_policy(self):          # UCT unused as of 12/11/2023
-            return (self.Q) + ( self.c * math.sqrt(math.log(self.N) / self.A))  
-=======
         def tree_policy(self):
             print(f'self: {self}')
             print(self.children)      
@@ -49,7 +39,6 @@ class StudentAgent(Agent):
             print(UCT)
             #breakpoint()    
             return self.children[np.argmax(UCT)]                     # Returning best child based on UCT            
->>>>>>> Stashed changes
         
         def is_terminal_node(self):     # Matches endgame and extracts boolean
             x, _ = self.check_endgame()
@@ -57,11 +46,6 @@ class StudentAgent(Agent):
         
         def selection (self):                           # Selection policy
             curr_node = self
-<<<<<<< Updated upstream
-            while not curr_node.is_terminal_node():     # While is not the end of game
-                if not curr_node.is_fully_expanded():   # While there are still moves to be made
-                    return curr_node.expand()           # Expand the node
-=======
             
             while (not curr_node.is_terminal_node(curr_node.chess_board, curr_node.p0_pos, curr_node.p1_pos)):     # While is not the end of game
             
@@ -78,16 +62,11 @@ class StudentAgent(Agent):
             x1, y1 = p1
             x2, y2 = p2
             return (np.abs(x1-x2)+np.abs(y1-y2))/2
->>>>>>> Stashed changes
                 
         def expand(self):                               # Make next move and add as child
             move = random.choice(self.all_moves, 1)
             self.all_moves.remove(move)
             
-<<<<<<< Updated upstream
-            child = MonteCarloTreeSearchNode(
-            )
-=======
             num_bar = len(StudentAgent.allowed_barriers(next_move, self.chess_board))            # Heuristic to avoid trapping self in
             if (num_bar == 1) :
                 child.Q += -50
@@ -96,7 +75,6 @@ class StudentAgent(Agent):
             child.Q -= self.manhatten_distance(next_move, self.p1_pos)
             self.children.append(child)
             return child
->>>>>>> Stashed changes
                 
         def move(self, pos):                            # takes position and simulates a move 
             chess_board = deepcopy(self.chess_board)
@@ -106,17 +84,6 @@ class StudentAgent(Agent):
             # Set the opposite barrier to True
             move = self.moves[dir]
             chess_board[x + move[0], y + move[1], self.opposites[dir]] = True
-<<<<<<< Updated upstream
-            return chess_board
-            
-        def random_barrier(self, pos):
-            barriers = StudentAgent.allowed_barriers(pos, self.chess_board)
-            return barriers[np.random.randint(0, len(barriers) + 1)]
-
-
-        def legal_moves(self):                                  # find all possible moves
-            o_pos = deepcopy(self.p0_pos)
-=======
             return chess_board, dir
         
         def barrier_sims(self, move):
@@ -178,7 +145,6 @@ class StudentAgent(Agent):
         
 
         def legal_moves(self, o_pos, adv_pos, chess_board):                                  # find all possible moves
->>>>>>> Stashed changes
             steps = [[] for k in range(self.max_steps+1)]       # create 2D array to store possible moves for each step
             steps[0].append(o_pos)                                 # step 0 = original position
             for i in range(self.max_steps):
@@ -242,8 +208,6 @@ class StudentAgent(Agent):
         def board_size(self):                       # Board is NxNx4 capturing N
             x, _, _ = np.shape(self.chess_board)
             return x
-<<<<<<< Updated upstream
-=======
         
         
         def best_move(self, t):
@@ -350,7 +314,6 @@ class StudentAgent(Agent):
             next_moves    = len(self.adv_moves(next_move, chessboard))
             return (current_moves - next_moves)
 
->>>>>>> Stashed changes
 
     def __init__(self):
         super(StudentAgent, self).__init__()
@@ -402,8 +365,6 @@ class StudentAgent(Agent):
         # time_taken during your search and breaking with the best answer
         # so far when it nears 2 seconds.
         start_time = time.time()
-<<<<<<< Updated upstream
-=======
 
         root = self.MonteCarloTreeSearchNode(chess_board, my_pos, adv_pos, max_step)
 
@@ -413,7 +374,6 @@ class StudentAgent(Agent):
         pos, dir = root.best_move(t_bestmove)
 
         #print(f'time for best_move: {time.time() - t_bestmove}')
->>>>>>> Stashed changes
         time_taken = time.time() - start_time
         
         print("My AI's turn took ", time_taken, "seconds.")
