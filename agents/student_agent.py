@@ -34,7 +34,6 @@ class StudentAgent(Agent):
             UCT = [((child.Q/child.N) +                              # Exploitation
                     (child.c * np.sqrt(np.log(self.N/child.N))))     # Exploration
                       for child in self.children]                    # For each child node
-            #breakpoint()    
             return self.children[np.argmax(UCT)]                     # Returning best child based on UCT            
         
         def selection (self):                                        # Selection policy
@@ -44,7 +43,8 @@ class StudentAgent(Agent):
                 if (not curr_node.is_fully_expanded()):   # While there are still moves to be made
                     return curr_node.expand()         # Expand the node
                 else:
-                    curr_node = curr_node.tree_policy() # Choose best child and return
+                    if len(curr_node.children) > 0:
+                        curr_node = curr_node.tree_policy() # Choose best child and return
             return curr_node
         
         def manhatten_distance(self, p1, p2):
@@ -242,10 +242,13 @@ class StudentAgent(Agent):
                 current.backpropagate(result)
                 sims += 1
             #breakpoint()
-            best_node = self.tree_policy()
+            if len(self.children) > 0:
+                best_node = self.tree_policy()
+            else: 
+                best_node = self
             best_pos = best_node.p0_pos
             best_dir = best_node.dir
-            return best_pos, best_dir
+            return best_node, best_pos, best_dir
 
 
         def backpropagate(self, result):
@@ -288,7 +291,6 @@ class StudentAgent(Agent):
             
             while(len(barriers) == 1 and len(self.simulation_moves) > 0):
                 move = self.simulation_moves.pop(np.random.randint(len(self.simulation_moves)))
-                #breakpoint()
                 barriers = StudentAgent.allowed_barriers(move, chess_board)
             return move
         
@@ -318,8 +320,9 @@ class StudentAgent(Agent):
             "u": 0,
             "r": 1,
             "d": 2,
-            "l": 3,
+            "l": 3,   
         }
+        self.current = None
 
     def allowed_dirs(my_pos, adv_pos, chess_board):
         moves = ((-1, 0), (0, 1), (1, 0), (0, -1))                      # Possible changes in x and y
@@ -357,15 +360,28 @@ class StudentAgent(Agent):
         # time_taken during your search and breaking with the best answer
         # so far when it nears 2 seconds.
         start_time = time.time()
-        root = self.MonteCarloTreeSearchNode(chess_board, my_pos, adv_pos, max_step)
-        #breakpoint()
-        pos, dir = root.best_move()
+        if self.current == None:
+            self.current = self.MonteCarloTreeSearchNode(chess_board, my_pos, adv_pos, max_step)
+            current = self.current
+        else:
+            current = self.current
+            current.chess_board = chess_board
+            current.all_moves = current.legal_moves(current.p0_pos, current.p1_pos, chess_board)
+            for child in current.children:
+                if child in current.all_moves:
+                    current.all_moves.remove(child)
+                else:
+                    current.children.remove(child)
+
+        node, pos, dir = current.best_move()
+
+        node.parent = None
+        self.current = node
 
         time_taken = time.time() - start_time
         
         print("My AI's turn took ", time_taken, "seconds.")
 
-        # dummy return
         
         return pos, dir
 
