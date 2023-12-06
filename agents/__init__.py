@@ -5,3 +5,4 @@ from .student_agent import StudentAgent
 from .random2_agent import RandomAgent2
 from .random3_agent import Random3Agent
 from .random4_agent import random4Agent
+from .random5_agent import Random5Agent
