@@ -249,7 +249,7 @@ class StudentAgent(Agent):
             p1 = self.p0_pos
             p2 = self.p1_pos
             original_player = True 
-            turns = 20                                                                    # 10 per player
+            turns = 30                                                                    # 10 per player
             while (not self.is_terminal_node(board, p1, p2) and turns > 0):               # While game is not over
                 p1, p2, board = self.simulation_step(board, p2, p1)                       # Take turns playing
                 original_player = not original_player
