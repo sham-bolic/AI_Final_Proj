@@ -21,7 +21,7 @@ class StudentAgent(Agent):
             self.map = {0:(-1, 0), 1:(0, 1), 2:(1, 0), 3:(0, -1)}
             self.parent = parent
             self.children = []
-            self.N = 0                  # number of times visited
+            self.N = 1                  # number of times visited
             self.Q = 0                  # score of node (win: +1, loss: -1, tie: +0.5)
             self.aggression = aggression
             self.max_steps = max_steps
@@ -29,6 +29,7 @@ class StudentAgent(Agent):
             self.all_moves = self.legal_moves(self.p0_pos, self.p1_pos, self.chess_board) # List of legal moves
             self.dir = dir      # parents decision
             self.simulation_moves = None
+            self.state = False
 
         def tree_policy(self):
             #print(f'self: {self}')
@@ -49,9 +50,9 @@ class StudentAgent(Agent):
             
             while not curr_node.is_terminal_node(curr_node.chess_board, curr_node.p0_pos, curr_node.p1_pos):     # While is not the end of game
                 if (not curr_node.is_fully_expanded()):   # While there are still moves to be made
-                    return curr_node.expand()         # Expand the node
+                    return curr_node.expand(), True         # Expand the node
                 else:
-                    return curr_node.tree_policy() # Choose best child and return
+                    return curr_node.tree_policy(), False # Choose best child and return
         
         def manhatten_distance(self, p1, p2):
             x1, y1 = p1
@@ -71,7 +72,10 @@ class StudentAgent(Agent):
                 child.Q += -50
             elif (num_bar == 2) :
                 child.Q += -5
-            child.Q -= self.manhatten_distance(next_move, self.p1_pos)
+            if self.state:
+                child.Q -= self.manhatten_distance(next_move, self.p1_pos)/2
+            else:
+                child.Q -= (self.manhatten_distance(next_move, self.p1_pos)/4)
             self.children.append(child)
             return child
                 
@@ -213,33 +217,26 @@ class StudentAgent(Agent):
             return x
         
         
-        def best_move(self):
-            #print(f'Before best_move : {time.time() - t}')
+        def best_move(self, state):
+            print(f'Early game: {state}')
+            self.state = state
             start_time = time.time()
             turn_time = 1.9             # set to 0.5 for testing, 1.9 for real min max
             end_time = start_time + turn_time
             sims = 0
             sim_avg = 0
             while(time.time()<end_time):
-                t1 = time.time()
-                current = self.selection()
-                current.simulation_moves = current.legal_moves(current.p0_pos, self.p1_pos, self.chess_board)
-                result = current.simulate()
-                current.backpropagate(result)
-                sims += 1
-                sim_avg += time.time() - t1
-
-                
-            #print(f'Time per sim: {sim_avg/sims}, Total time simming: {sim_avg}, Number of sims: {sims}, loop: {loop}')
+                current, expansion_node = self.selection()
+                if not expansion_node:
+                    current.simulation_moves = current.legal_moves(current.p0_pos, self.p1_pos, self.chess_board)
+                    result = current.simulate()
+                    current.backpropagate(result)
+                    sims += 1
             print(sims)        
-            t2 = time.time()
-            print(f'Number of children {len(self.children)}')
             best_node = self.tree_policy()
-            #print(f'Tree policy: {time.time() - t2}')
             best_pos = best_node.p0_pos
             best_dir = best_node.dir
             return best_pos, best_dir
-
 
         def backpropagate(self, result):
             self.N += 1
@@ -252,7 +249,7 @@ class StudentAgent(Agent):
             p1 = self.p0_pos
             p2 = self.p1_pos
             original_player = True 
-            turns = 10                                                                    # 10 per player
+            turns = 20                                                                    # 10 per player
             while (not self.is_terminal_node(board, p1, p2) and turns > 0):               # While game is not over
                 p1, p2, board = self.simulation_step(board, p2, p1)                       # Take turns playing
                 original_player = not original_player
@@ -276,12 +273,9 @@ class StudentAgent(Agent):
 
         def random_moves(self, board):                                      # Literally random_agent
             chess_board = deepcopy(board)
-            steps = np.random.randint(0, self.max_steps + 1)
             barriers = [1]
-            
             while(len(barriers) == 1 and len(self.simulation_moves) > 0):
                 move = self.simulation_moves.pop(np.random.randint(len(self.simulation_moves)))
-                #breakpoint()
                 barriers = StudentAgent.allowed_barriers(move, chess_board)
             return move
         
@@ -313,6 +307,7 @@ class StudentAgent(Agent):
             "d": 2,
             "l": 3,   
         }
+        self.state = 0
 
     def allowed_dirs(my_pos, adv_pos, chess_board):
         moves = ((-1, 0), (0, 1), (1, 0), (0, -1))                      # Possible changes in x and y
@@ -353,13 +348,14 @@ class StudentAgent(Agent):
 
         current = self.MonteCarloTreeSearchNode(chess_board, my_pos, adv_pos, max_step)
 
-        pos, dir = current.best_move()
-
+        x,_,_ = np.shape(chess_board)
+        if self.state < (x):
+            pos, dir = current.best_move(True)
+        else: 
+            pos, dir = current.best_move(False)
+        self.state += 2    
         time_taken = time.time() - start_time
-        
         print("My AI's turn took ", time_taken, "seconds.")
-
-        
         return pos, dir
 
 
