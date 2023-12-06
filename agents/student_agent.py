@@ -264,7 +264,7 @@ class StudentAgent(Agent):
             chess_board[x + move[0], y + move[1], self.opposites[dir]] = True
             return my_pos, adv_pos, chess_board
         
-        def allowed_dirs(my_pos, adv_pos, chess_board):
+        def allowed_dirs(self, my_pos, adv_pos, chess_board):
             moves = ((-1, 0), (0, 1), (1, 0), (0, -1))                      # Possible changes in x and y
             x, y = my_pos                                                   
             possible_moves = [ d                                            # storing d if there is not a wall nor adv in the way
@@ -274,7 +274,7 @@ class StudentAgent(Agent):
             ]
             return possible_moves
 
-        def allowed_barriers(my_pos, chess_board):
+        def allowed_barriers(self, my_pos, chess_board):
             x, y = my_pos
             legal_walls = [i for i in range (0,4) if not chess_board[x, y, i]]
             return legal_walls            
