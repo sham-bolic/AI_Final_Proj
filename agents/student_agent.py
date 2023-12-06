@@ -21,20 +21,21 @@ class StudentAgent(Agent):
             self.map = {0:(-1, 0), 1:(0, 1), 2:(1, 0), 3:(0, -1)}
             self.parent = parent
             self.children = []
-            self.N = 0                  # number of times visited
+            self.N = 1                  # number of times visited
             self.Q = 0                  # score of node (win: +1, loss: -1, tie: +0.5)
             self.aggression = aggression
             self.max_steps = max_steps
             self.all_moves = None
             self.all_moves = self.legal_moves(self.p0_pos, self.p1_pos, self.chess_board) # List of legal moves
+            self.total_moves = self.all_moves
             self.dir = dir      # parents decision
             self.simulation_moves = None
+            self.state = False
 
         def tree_policy(self):      
             UCT = [((child.Q/child.N) +                              # Exploitation
                     (child.c * np.sqrt(np.log(self.N/child.N))))     # Exploration
                       for child in self.children]                    # For each child node
-            #breakpoint()    
             return self.children[np.argmax(UCT)]                     # Returning best child based on UCT            
         
         def selection (self):                                        # Selection policy
@@ -54,84 +55,44 @@ class StudentAgent(Agent):
                 
         def expand(self):                               # Make next move and add as child
             next_move = self.all_moves.pop(np.random.randint(0, len(self.all_moves)))
-            board, dir = self.move(self.chess_board, next_move)
-
-            child = StudentAgent.MonteCarloTreeSearchNode(
-                board, next_move, self.p1_pos, self.max_steps, dir = dir, parent = self
-            )
-            
-            num_bar = len(StudentAgent.allowed_barriers(next_move, self.chess_board))            # Heuristic to avoid trapping self in
-            if (num_bar == 1) :
-                child.Q += -50
-            elif (num_bar == 2) :
-                child.Q += -5
-           
-            child.Q -= self.manhatten_distance(next_move, self.p1_pos)
-            self.children.append(child)
-            return child
+            barriers = StudentAgent.allowed_barriers(next_move, self.chess_board)
+            bar1, bar2 = self.aggressive_barrier(next_move)
+            same_move = []
+            for wall in barriers:
+                board = self.move(self.chess_board, next_move, wall)
+                child = StudentAgent.MonteCarloTreeSearchNode(
+                    board, next_move, self.p1_pos, self.max_steps, dir = wall, parent = self
+                )
+                num_bar = len(StudentAgent.allowed_barriers(next_move, self.chess_board))            # Heuristic to avoid trapping self in
+                if (num_bar == 1) :
+                    child.Q += -50
+                if (num_bar == 2) :
+                    child.Q += -5
+                if self.state:
+                    child.Q -= self.manhatten_distance(next_move, self.p1_pos)/8
+                else:
+                    child.Q -= (self.manhatten_distance(next_move, self.p1_pos)/16)
+                if wall == bar1:
+                    child.Q += 0.1
+                elif wall == bar2:
+                    child.Q += 0.05
+                self.children.append(child)
+                same_move.append(child)
+            return same_move[np.random.randint(0,len(same_move))]
                 
-        def move(self, board, pos):                            # takes position and simulates a move 
+        def move(self, board, pos, dir):                            # takes position and simulates a move 
             chess_board = deepcopy(board)
             x, y = pos
-            dir = self.barrier_sims(pos)
-
             # Set the barrier to True
             chess_board[x, y, dir] = True
             # Set the opposite barrier to True
             move = self.moves[dir]
             chess_board[x + move[0], y + move[1], self.opposites[dir]] = True
-            return chess_board, dir
-        
-        def barrier_sims(self, move):
-            p1 = move
-            p2 = self.p1_pos
-            board = deepcopy(self.chess_board) 
-            original_player = True
-            barrier_list = [-999,-999,-999,-999]
-
-            for i in StudentAgent.allowed_barriers(p1, board):
-                score = 0
-                for _ in range(2):
-                    current_state = deepcopy(self.simulation_moves)
-                    turns = 20                                                                    # 10 per player
-                    while (not self.is_terminal_node(board, p1, p2) and turns > 0):               # While game is not over
-                        p1, p2, board = self.simulation_step(board, p2, p1)                       # Take turns playing
-                        original_player = not original_player
-                    if (self.is_terminal_node(board, p1, p2)): 
-                        if (original_player): 
-                            _, result = self.check_endgame(board, p1, p2)
-                        else:
-                            _, result = self.check_endgame(board, p2, p1)            
-                            turns -= 1  
-                    else:
-                        our_moves = len(self.legal_moves(p1, p2, board))
-                        adv_moves = len(self.legal_moves(p2, p1, board))
-                        if our_moves > adv_moves:
-                            result = 1
-                        elif our_moves == adv_moves:
-                            result = 0.5
-                        else:
-                            result = -1
-                    score += result
-                    self.simulation_moves = current_state      
-                barrier_list[i] = score
-            
-            agressive_bars, pref_bar = self.aggressive_barrier(move)
-            for i in agressive_bars:
-                barrier_list[i] += 0.5
-            barrier_list[pref_bar] += 0.5
-
-            best_barrier = np.argmax(barrier_list)
-            #breakpoint()
-            self.backpropagate(barrier_list[best_barrier])
-            return best_barrier
+            return chess_board
         
         def aggressive_barrier(self, move):
             p1 = move
             p2 = self.p1_pos
-            board = deepcopy(self.chess_board)
-
-            allowed_barriers = StudentAgent.allowed_barriers(p1, board)
 
             x1,y1 = p1
             x2,y2 = p2
@@ -151,11 +112,13 @@ class StudentAgent(Agent):
                 preferred_dir.append(3)
 
             if np.abs(x_diff) > np.abs(y_diff):
-                dir = preferred_dir[0]
+                dir1 = preferred_dir[0]
+                dir2 = preferred_dir[1]
             else:
-                dir = preferred_dir[1]
+                dir1 = preferred_dir[1]
+                dir2 = preferred_dir[0]
 
-            return preferred_dir, dir
+            return dir1, dir2
         
 
         def legal_moves(self, o_pos, adv_pos, chess_board):                                  # find all possible moves
@@ -229,8 +192,9 @@ class StudentAgent(Agent):
             return x
         
         
-        def best_move(self):
-            
+        def best_move(self, state):
+            print(f'Early game: {state}')
+            self.state = state
             start_time = time.time()
             turn_time = 1.9             # set to 0.5 for testing, 1.9 for real min max
             end_time = start_time + turn_time
@@ -241,7 +205,7 @@ class StudentAgent(Agent):
                 result = current.simulate()
                 current.backpropagate(result)
                 sims += 1
-            #breakpoint()
+            print(f'n sims: {sims}, n children: {len(self.children)}')
             best_node = self.tree_policy()
             best_pos = best_node.p0_pos
             best_dir = best_node.dir
@@ -259,19 +223,22 @@ class StudentAgent(Agent):
             p1 = self.p0_pos
             p2 = self.p1_pos
             original_player = True 
-            turns = 20                                                                    # 10 per player
+            if self.state:
+                turns = 10
+            else:
+                turns = 40                                                               # 10 per player
             while (not self.is_terminal_node(board, p1, p2) and turns > 0):               # While game is not over
                 p1, p2, board = self.simulation_step(board, p2, p1)                       # Take turns playing
                 original_player = not original_player
+                turns -= 1  
             if (self.is_terminal_node(board, p1, p2)): 
                 if (original_player): 
                     _, result = self.check_endgame(board, p1, p2)
                 else:
-                    _, result = self.check_endgame(board, p2, p1)            
-                    turns -= 1  
+                    _, result = self.check_endgame(board, p2, p1)             
             else:
                 our_moves = len(self.legal_moves(p1, p2, board))
-                adv_moves = len(self.legal_moves(p2, p1, board))
+                adv_moves = len(self.total_moves)
                 if our_moves > adv_moves:
                     result = 1
                 elif our_moves == adv_moves:
@@ -283,15 +250,14 @@ class StudentAgent(Agent):
 
         def random_moves(self, board):                                      # Literally random_agent
             chess_board = deepcopy(board)
-            steps = np.random.randint(0, self.max_steps + 1)
             barriers = [1]
-            
             while(len(barriers) == 1 and len(self.simulation_moves) > 0):
                 move = self.simulation_moves.pop(np.random.randint(len(self.simulation_moves)))
                 #breakpoint()
                 barriers = StudentAgent.allowed_barriers(move, chess_board)
             return move
         
+
         def simulation_step(self, chess_board, my_pos, adv_pos):
             self.simulation_moves = self.legal_moves(my_pos, adv_pos,chess_board)
             my_pos = self.random_moves(chess_board)
@@ -320,6 +286,7 @@ class StudentAgent(Agent):
             "d": 2,
             "l": 3,
         }
+        self.state  = 0
 
     def allowed_dirs(my_pos, adv_pos, chess_board):
         moves = ((-1, 0), (0, 1), (1, 0), (0, -1))                      # Possible changes in x and y
@@ -337,29 +304,16 @@ class StudentAgent(Agent):
         return legal_walls                                              # returning the possible places that wall can be placed for given my_pos
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
-        """
-        Implement the step function of your agent here.
-        You can use the following variables to access the chess board:
-        - chess_board: a numpy array of shape (x_max, y_max, 4)
-        - my_pos: a tuple of (x, y)
-        - adv_pos: a tuple of (x, y)
-        - max_step: an integer
-
-        You should return a tuple of ((x, y), dir),
-        where (x, y) is the next position of your agent and dir is the direction of the wall
-        you want to put on.
-
-        Please check the sample implementation in agents/random_agent.py or agents/human_agent.py for more details.
-        """
-
-        
-        # Some simple code to help you with timing. Consider checking 
-        # time_taken during your search and breaking with the best answer
-        # so far when it nears 2 seconds.
         start_time = time.time()
+
         root = self.MonteCarloTreeSearchNode(chess_board, my_pos, adv_pos, max_step)
-        #breakpoint()
-        pos, dir = root.best_move()
+        
+        x,_,_ = np.shape(chess_board)
+        if self.state < (3*x):
+            pos, dir = root.best_move(True)
+        else: 
+            pos, dir = root.best_move(False)
+        self.state += 2    
 
         time_taken = time.time() - start_time
         
