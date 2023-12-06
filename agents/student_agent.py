@@ -70,8 +70,6 @@ class StudentAgent(Agent):
             num_bar = len(StudentAgent.allowed_barriers(next_move, self.chess_board))            # Heuristic to avoid trapping self in
             if (num_bar == 1) :
                 child.Q += -50
-            elif (num_bar == 2) :
-                child.Q += -5
             if self.state:
                 child.Q -= self.manhatten_distance(next_move, self.p1_pos)/2
             else:
@@ -249,7 +247,10 @@ class StudentAgent(Agent):
             p1 = self.p0_pos
             p2 = self.p1_pos
             original_player = True 
-            turns = 30                                                                    # 10 per player
+            if self.state:
+                turns = 10
+            else:
+                turns = 20                                                                    # 10 per player
             while (not self.is_terminal_node(board, p1, p2) and turns > 0):               # While game is not over
                 p1, p2, board = self.simulation_step(board, p2, p1)                       # Take turns playing
                 original_player = not original_player
