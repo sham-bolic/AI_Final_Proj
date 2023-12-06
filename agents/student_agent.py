@@ -1,7 +1,6 @@
 # Student agent: Add your own agent here
 from agents.agent import Agent
 from store import register_agent
-import sys
 import numpy as np
 from copy import deepcopy
 import time
@@ -27,7 +26,7 @@ class StudentAgent(Agent):
             self.max_steps = max_steps
             self.all_moves = None
             self.all_moves = self.legal_moves(self.p0_pos, self.p1_pos, self.chess_board) # List of legal moves
-            self.total_moves = self.all_moves
+            self.total_moves = len(self.all_moves)
             self.dir = dir      # parents decision
             self.simulation_moves = None
             self.state = False
@@ -55,7 +54,7 @@ class StudentAgent(Agent):
                 
         def expand(self):                               # Make next move and add as child
             next_move = self.all_moves.pop(np.random.randint(0, len(self.all_moves)))
-            barriers = StudentAgent.allowed_barriers(next_move, self.chess_board)
+            barriers = self.allowed_barriers(next_move, self.chess_board)
             bar1, bar2 = self.aggressive_barrier(next_move)
             same_move = []
             for wall in barriers:
@@ -63,7 +62,7 @@ class StudentAgent(Agent):
                 child = StudentAgent.MonteCarloTreeSearchNode(
                     board, next_move, self.p1_pos, self.max_steps, dir = wall, parent = self
                 )
-                num_bar = len(StudentAgent.allowed_barriers(next_move, self.chess_board))            # Heuristic to avoid trapping self in
+                num_bar = len(self.allowed_barriers(next_move, self.chess_board))            # Heuristic to avoid trapping self in
                 if (num_bar == 1) :
                     child.Q += -50
                 if (num_bar == 2) :
@@ -126,7 +125,7 @@ class StudentAgent(Agent):
             steps[0].append(o_pos)                                 # step 0 = original position
             for i in range(self.max_steps):
                 for pos in steps[i]:
-                    moves = StudentAgent.allowed_dirs(pos, adv_pos, chess_board)  
+                    moves = self.allowed_dirs(pos, adv_pos, chess_board)  
                     for move in moves:                          # iterates through legal moves given current position
                         new_move = tuple(np.add(pos, self.map[move]))           # getting new pos (x + a, y + b)
                         if new_move not in steps:               # checking if move is contained in array
@@ -193,19 +192,15 @@ class StudentAgent(Agent):
         
         
         def best_move(self, state):
-            print(f'Early game: {state}')
             self.state = state
             start_time = time.time()
-            turn_time = 1.9             # set to 0.5 for testing, 1.9 for real min max
+            turn_time = 1.9         
             end_time = start_time + turn_time
-            sims = 0
             while(time.time()<end_time):
                 current = self.selection()
                 current.simulation_moves = current.legal_moves(current.p0_pos, self.p1_pos, self.chess_board)
-                result = current.simulate()
+                result = current.simulate(end_time)
                 current.backpropagate(result)
-                sims += 1
-            print(f'n sims: {sims}, n children: {len(self.children)}')
             best_node = self.tree_policy()
             best_pos = best_node.p0_pos
             best_dir = best_node.dir
@@ -218,7 +213,7 @@ class StudentAgent(Agent):
             if (self.parent):
                 self.parent.backpropagate(result)
 
-        def simulate(self):
+        def simulate(self, end_time):
             board = deepcopy(self.chess_board) 
             p1 = self.p0_pos
             p2 = self.p1_pos
@@ -227,7 +222,7 @@ class StudentAgent(Agent):
                 turns = 10
             else:
                 turns = 40                                                               # 10 per player
-            while (not self.is_terminal_node(board, p1, p2) and turns > 0):               # While game is not over
+            while (not self.is_terminal_node(board, p1, p2) and turns > 0 and time.time() < end_time):               # While game is not over
                 p1, p2, board = self.simulation_step(board, p2, p1)                       # Take turns playing
                 original_player = not original_player
                 turns -= 1  
@@ -238,7 +233,7 @@ class StudentAgent(Agent):
                     _, result = self.check_endgame(board, p2, p1)             
             else:
                 our_moves = len(self.legal_moves(p1, p2, board))
-                adv_moves = len(self.total_moves)
+                adv_moves = self.total_moves
                 if our_moves > adv_moves:
                     result = 1
                 elif our_moves == adv_moves:
@@ -254,28 +249,36 @@ class StudentAgent(Agent):
             while(len(barriers) == 1 and len(self.simulation_moves) > 0):
                 move = self.simulation_moves.pop(np.random.randint(len(self.simulation_moves)))
                 #breakpoint()
-                barriers = StudentAgent.allowed_barriers(move, chess_board)
+                barriers = self.allowed_barriers(move, chess_board)
             return move
         
 
         def simulation_step(self, chess_board, my_pos, adv_pos):
             self.simulation_moves = self.legal_moves(my_pos, adv_pos,chess_board)
             my_pos = self.random_moves(chess_board)
-            walls = StudentAgent.allowed_barriers(my_pos, chess_board)
+            walls = self.allowed_barriers(my_pos, chess_board)
             dir = walls[np.random.randint(len(walls))]
-            # Set the barrier to True
             x, y = my_pos
             chess_board[x, y, dir] = True
-            # Set the opposite barrier to True
             move = self.moves[dir]
             chess_board[x + move[0], y + move[1], self.opposites[dir]] = True
             return my_pos, adv_pos, chess_board
         
-        def aggressive_playstyle(self, next_move, chessboard):
-            current_moves = len(self.adv_moves(self.p0_pos, self.chess_board))
-            next_moves    = len(self.adv_moves(next_move, chessboard))
-            return (current_moves - next_moves)
+        def allowed_dirs(my_pos, adv_pos, chess_board):
+            moves = ((-1, 0), (0, 1), (1, 0), (0, -1))                      # Possible changes in x and y
+            x, y = my_pos                                                   
+            possible_moves = [ d                                            # storing d if there is not a wall nor adv in the way
+                for d in range (0,4)
+                if not chess_board[x, y, d] and
+                not adv_pos == (x + moves[d][0], y + moves[d][1])
+            ]
+            return possible_moves
 
+        def allowed_barriers(my_pos, chess_board):
+            x, y = my_pos
+            legal_walls = [i for i in range (0,4) if not chess_board[x, y, i]]
+            return legal_walls            
+            
 
     def __init__(self):
         super(StudentAgent, self).__init__()
@@ -287,21 +290,6 @@ class StudentAgent(Agent):
             "l": 3,
         }
         self.state  = 0
-
-    def allowed_dirs(my_pos, adv_pos, chess_board):
-        moves = ((-1, 0), (0, 1), (1, 0), (0, -1))                      # Possible changes in x and y
-        x, y = my_pos                                                   
-        possible_moves = [ d                                            # storing d if there is not a wall nor adv in the way
-            for d in range (0,4)
-            if not chess_board[x, y, d] and
-            not adv_pos == (x + moves[d][0], y + moves[d][1])
-        ]
-        return possible_moves
-
-    def allowed_barriers(my_pos, chess_board):
-        x, y = my_pos
-        legal_walls = [i for i in range (0,4) if not chess_board[x, y, i]]
-        return legal_walls                                              # returning the possible places that wall can be placed for given my_pos
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         start_time = time.time()
