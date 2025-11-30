@@ -55,6 +55,24 @@ During autoplay, boards are drawn randomly between size `--board_size_min` and `
 - Not all agents supports autoplay. The variable `self.autoplay` in [Agent](agents/agent.py) can be set to `True` to allow the agent to be autoplayed. Typically this flag is set to false for a `human_agent`.
 - UI display will be disabled in an autoplay.
 
+## Student Agent Strategy
+
+The submitted `StudentAgent` employs a **Monte Carlo Tree Search (MCTS)** algorithm tailored for the Colosseum Survival game. The agent's decision-making process is divided into four standard MCTS phases: Selection, Expansion, Simulation, and Backpropagation, enhanced with domain-specific heuristics.
+
+### Core Strategy
+- **Monte Carlo Tree Search**: The agent builds a search tree where each node represents a game state. It uses the **UCT (Upper Confidence Bound for Trees)** formula to balance **exploration** (trying less-visited moves) and **exploitation** (refining the best-known moves).
+- **Territory Evaluation**: To determine the winner during simulations, the agent uses a **Union-Find (Disjoint Set)** data structure to count the number of reachable squares for each player. The player with the larger territory wins.
+
+### Heuristics and Optimizations
+1. **Dynamic Simulation Depth**:
+   - **Early Game**: Uses shorter simulation rollouts (10 turns) and encourages aggression (moving closer to the opponent) to restrict their space early.
+   - **Late Game**: Increases simulation depth (40 turns) to better predict long-term territory control as the board fills up.
+2. **Move Scoring**:
+   - **Aggressive Barriers**: The agent favors placing barriers that directly block the opponent's path relative to their current position.
+   - **Safety**: Moves that leave the agent with very few legal barrier placements in the future are heavily penalized to avoid self-entrapment.
+   - **Proximity**: Heuristics adjust the score based on Manhattan distance to the opponent, varying by game stage.
+3. **Time Management**: The search runs for a fixed duration (approx. 1.9 seconds) per turn to maximize the number of simulations while adhering to strict time limits.
+
 ## Develop your own general agent(s):
 
 You need to write one agent and submit it for the class project, but you may develop additional agents during the development process to play against eachother, gather data or similar. To write a general agent:
